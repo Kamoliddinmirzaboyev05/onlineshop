@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Env / secrets
+.env
+*.local
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# DB
+*.sqlite3
+postgres-data/
+
+# Nested project repos (each has its own .git — not submodules, just sibling repos)
+/admin/
+/backend/
+/courier/
+/kuryer/
+/tma/
