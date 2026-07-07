@@ -10,6 +10,17 @@
 
 Spec: `docs/superpowers/specs/2026-07-07-elon-announcements-design.md`
 
+> **Amendment (post-Task-1 review):** `Announcement.status` was changed from a plain
+> `Mapped[str]`/`String(16)` to a proper `AnnouncementStatus(str, enum.Enum)` in
+> `app/models/enums.py` (values: `pending`, `sending`, `sent`), matching the codebase's existing
+> convention for every other status-like column (`OrderStatus`, `PaymentStatus`, `AdminRole`).
+> Tasks below still show `status: str` / string literals like `"sending"` in code samples — treat
+> every such reference as `AnnouncementStatus.sending` etc. (import `AnnouncementStatus` from
+> `app.models.enums` wherever `status` is read or written). Pydantic schemas and the FastAPI JSON
+> response are unaffected: `AnnouncementStatus` is a `str` subclass, so it still serializes as the
+> plain string (`"pending"`/`"sending"`/`"sent"`) — the frontend TypeScript union type in Task 5
+> needs no change.
+
 ---
 
 ### Task 1: `Announcement` model
