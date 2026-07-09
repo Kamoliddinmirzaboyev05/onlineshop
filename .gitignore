@@ -28,6 +28,7 @@ postgres-data/
 # Nested project repos (each has its own .git — not submodules, just sibling repos)
 /admin/
 /backend/
+/businessman/
 /courier/
 /kuryer/
 /tma/
