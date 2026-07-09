@@ -83,6 +83,7 @@ Har biri `Depends(current_restaurant)` orqali cheklanadi. Kim kira olishi:
 | `POST /push/*` | ✅ | ❌ | `admin_user_id`ga bog'langan |
 | `PATCH /users/{uid}/block`, `DELETE /users/{uid}` | ❌ | ❌ | **ko'chiriladi** → platform superadmin |
 | `GET/POST /announcements`, `/resend` | ❌ | ❌ | **ko'chiriladi** → platform superadmin |
+| `POST /admin/upload` (`uploads.py`) | ✅ | ✅ | **o'zgaradi**: hozir `require_staff` bilan qulflangan, businessman mahsulot rasmini yuklay olishi uchun ochiladi |
 
 ### Ataylab qilinadigan buzuvchi o'zgarishlar (mavjud `admin` PWA'ga)
 
