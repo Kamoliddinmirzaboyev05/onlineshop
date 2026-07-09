@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold shadow-sm active:scale-95 transition disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-50 active:scale-95 transition;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-slate-100;
+  }
+  .pill {
+    @apply inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  }
+}
+
+/* ---- Skeleton shimmer ---- */
+.af-skel {
+  position: relative;
+  overflow: hidden;
+  background-color: #e9edf2;
+}
+.af-skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent
+  );
+  animation: af-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes af-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ---- Splash (React) ---- */
+@keyframes af-splash-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Respect users who ask for less motion: kill shimmer + decorative anims. */
+@media (prefers-reduced-motion: reduce) {
+  .af-skel::after {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

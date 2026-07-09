@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#FF5722" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="AF Tadbirkor" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <title>All Foods — Tadbirkor</title>
+    <style>
+      /* Splash — React yuklanmaguncha ko'rinadi, mount bo'lgach o'chadi. */
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        background: #f1f5f9;
+        transition: opacity 0.35s ease;
+      }
+      #splash.hide {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #splash img {
+        width: 88px;
+        height: 88px;
+        border-radius: 22px;
+        box-shadow: 0 10px 30px rgba(255, 87, 34, 0.25);
+      }
+      #splash .af-name {
+        font: 600 17px/1 system-ui, -apple-system, sans-serif;
+        color: #0f172a;
+        letter-spacing: -0.01em;
+      }
+      #splash .af-spin {
+        width: 26px;
+        height: 26px;
+        border: 3px solid #ffd9cc;
+        border-top-color: #ff5722;
+        border-radius: 50%;
+        animation: af-rot 0.7s linear infinite;
+      }
+      @keyframes af-rot {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="splash">
+      <img src="/pwa-192.png" alt="All Foods" />
+      <div class="af-name">All Foods — Tadbirkor</div>
+      <div class="af-spin"></div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

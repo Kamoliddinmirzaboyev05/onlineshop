@@ -1,0 +1,16 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+.vite
+
+# Env / secrets
+.env
+*.local
+
+# OS / editor
+.DS_Store
+.idea
+.vscode
+.vercel

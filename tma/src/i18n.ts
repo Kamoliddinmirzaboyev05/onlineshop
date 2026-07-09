@@ -1,0 +1,137 @@
+import { create } from "zustand";
+import { getLanguage } from "./telegram";
+
+export type Lang = "uz" | "ru";
+
+const dict = {
+  uz: {
+    restaurants: "Restoranlar",
+    home: "Bosh sahifa",
+    search_tab: "Qidiruv",
+    categories: "Kategoriyalar",
+    no_categories: "Kategoriyalar hali yo'q",
+    empty_category: "Bu kategoriyada mahsulot yo'q",
+    products_n: "mahsulot",
+    search: "Qidirish…",
+    cart: "Savatcha",
+    cart_empty: "Savatcha bo'sh",
+    checkout: "Rasmiylashtirish",
+    orders: "Buyurtmalar",
+    profile: "Profil",
+    add: "Qo'shish",
+    delivery: "Yetkazib berish",
+    min_order: "Min. buyurtma",
+    free: "Bepul",
+    total: "Jami",
+    place_order: "Buyurtma berish",
+    address: "Manzil",
+    address_ph: "Yetkazish manzilini kiriting",
+    phone: "Telefon",
+    comment: "Izoh",
+    pay_cash: "Naqd (kuryerga)",
+    sum: "so'm",
+    min: "daq",
+    open: "Ochiq",
+    closed: "Yopiq",
+    no_orders: "Hali buyurtmalar yo'q",
+    back_to_menu: "Menyuga qaytish",
+    order: "Buyurtma",
+    status: {
+      pending: "Qabul qilindi",
+      confirmed: "Tasdiqlandi",
+      preparing: "Tayyorlanmoqda",
+      ready: "Tayyor",
+      accepted: "Kuryer qabul qildi",
+      delivering: "Yetkazilmoqda",
+      delivered: "Yetkazildi",
+      cancelled: "Bekor qilindi",
+    } as Record<string, string>,
+    stages: {
+      confirmed: "Tasdiqlandi",
+      delivering: "Yetkazilyapti",
+      delivered: "Yetkazildi",
+    } as Record<string, string>,
+    receipt: "Chek",
+    view_receipt: "Chekni ko'rish",
+    items_label: "Mahsulotlar",
+    payment: "To'lov",
+    pay_card: "Karta",
+    cancelled_note: "Buyurtma bekor qilindi",
+    thank_you: "Xaridingiz uchun rahmat! 🙏",
+    close: "Yopish",
+  },
+  ru: {
+    restaurants: "Рестораны",
+    home: "Главная",
+    search_tab: "Поиск",
+    categories: "Категории",
+    no_categories: "Категорий пока нет",
+    empty_category: "В этой категории нет товаров",
+    products_n: "товаров",
+    search: "Поиск…",
+    cart: "Корзина",
+    cart_empty: "Корзина пуста",
+    checkout: "Оформление",
+    orders: "Заказы",
+    profile: "Профиль",
+    add: "Добавить",
+    delivery: "Доставка",
+    min_order: "Мин. заказ",
+    free: "Бесплатно",
+    total: "Итого",
+    place_order: "Заказать",
+    address: "Адрес",
+    address_ph: "Введите адрес доставки",
+    phone: "Телефон",
+    comment: "Комментарий",
+    pay_cash: "Наличные (курьеру)",
+    sum: "сум",
+    min: "мин",
+    open: "Открыто",
+    closed: "Закрыто",
+    no_orders: "Заказов пока нет",
+    back_to_menu: "Вернуться в меню",
+    order: "Заказ",
+    status: {
+      pending: "Принят",
+      confirmed: "Подтверждён",
+      preparing: "Готовится",
+      ready: "Готов",
+      accepted: "Курьер принял",
+      delivering: "В пути",
+      delivered: "Доставлен",
+      cancelled: "Отменён",
+    } as Record<string, string>,
+    stages: {
+      confirmed: "Подтверждён",
+      delivering: "В пути",
+      delivered: "Доставлен",
+    } as Record<string, string>,
+    receipt: "Чек",
+    view_receipt: "Посмотреть чек",
+    items_label: "Товары",
+    payment: "Оплата",
+    pay_card: "Карта",
+    cancelled_note: "Заказ отменён",
+    thank_you: "Спасибо за покупку! 🙏",
+    close: "Закрыть",
+  },
+};
+
+interface I18nState {
+  lang: Lang;
+  t: (typeof dict)["uz"];
+  setLang: (l: Lang) => void;
+}
+
+export const useI18n = create<I18nState>((set) => ({
+  lang: getLanguage(),
+  t: dict[getLanguage()],
+  setLang: (l) => set({ lang: l, t: dict[l] }),
+}));
+
+// localized field helper
+export function loc<T extends object>(obj: T, base: string, lang: Lang): string {
+  const rec = obj as Record<string, unknown>;
+  return (rec[`${base}_${lang}`] as string) ?? (rec[`${base}_uz`] as string) ?? "";
+}

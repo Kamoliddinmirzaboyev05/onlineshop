@@ -11,10 +11,38 @@ venv/
 node_modules/
 dist/
 .vite/
+.next/
 
-# Env / secrets
+# Flutter / Dart (kuryer)
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+
+# Env / secrets — only .env.example is committed
 .env
+.env.*
+!.env.example
 *.local
+
+# Signing keys, keystores, certificates
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+key.properties
+google-services.json
+
+# Database dumps — contain real customer data
+backups/
+*.sql
+*.dump
+
+# Backend: isolated implementation workspaces + user uploads
+.worktrees/
+uploads/
 
 # OS / editor
 .DS_Store
@@ -24,12 +52,3 @@ dist/
 # DB
 *.sqlite3
 postgres-data/
-
-# Nested project repos (each has its own .git — not submodules, just sibling repos)
-/admin/
-/backend/
-/businessman/
-/courier/
-/kuryer/
-/superadmin/
-/tma/

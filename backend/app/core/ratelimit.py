@@ -1,0 +1,30 @@
+"""Oddiy Redis asosidagi rate limiter (login brute-force'ga qarshi).
+
+Redis ishlamasa — fail-open (loginni bloklamaymiz), chunki to'xtab qolish
+xavfsizlikdan ko'ra ko'proq zarar keltiradi.
+"""
+
+from fastapi import HTTPException, Request, status
+
+from app.core.redis import redis_client
+
+
+def rate_limiter(prefix: str, limit: int, window_seconds: int):
+    """IP bo'yicha `window_seconds` ichida `limit` martadan ko'p so'rovni rad etadi."""
+
+    def dependency(request: Request) -> None:
+        ip = request.client.host if request.client else "unknown"
+        key = f"rl:{prefix}:{ip}"
+        try:
+            count = redis_client.incr(key)
+            if count == 1:
+                redis_client.expire(key, window_seconds)
+        except Exception:
+            return  # Redis yo'q — fail-open
+        if count > limit:
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "Juda ko'p urinish. Birozdan so'ng qayta urinib ko'ring.",
+            )
+
+    return dependency

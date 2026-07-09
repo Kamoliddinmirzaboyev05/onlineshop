@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="96" fill="#FF5722"/>
+  <g fill="#ffffff">
+    <!-- scooter body -->
+    <circle cx="150" cy="358" r="46" fill="none" stroke="#ffffff" stroke-width="22"/>
+    <circle cx="372" cy="358" r="46" fill="none" stroke="#ffffff" stroke-width="22"/>
+    <path d="M150 358 L250 358 L300 250 L210 250" fill="none" stroke="#ffffff" stroke-width="22" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M300 250 L372 250 L372 358" fill="none" stroke="#ffffff" stroke-width="22" stroke-linejoin="round" stroke-linecap="round"/>
+    <!-- delivery box -->
+    <rect x="296" y="150" width="96" height="80" rx="10"/>
+    <rect x="330" y="120" width="28" height="34" rx="6"/>
+    <!-- handlebar -->
+    <path d="M196 250 L150 200 L116 200" fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round"/>
+  </g>
+</svg>
