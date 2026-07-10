@@ -1,4 +1,5 @@
 import { AtSign, Camera, Globe, KeyRound, PlayCircle, Plus, Save, Send, Trash2 } from "lucide-react";
+import PasswordInput from "../components/PasswordInput";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { get, put } from "../api";
@@ -226,9 +227,8 @@ export default function SettingsPage() {
             <div className="grid sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Eski parol</label>
-                <input
+                <PasswordInput
                   className="input"
-                  type="password"
                   value={oldPw}
                   onChange={(e) => setOldPw(e.target.value)}
                   required
@@ -236,9 +236,8 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Yangi parol</label>
-                <input
+                <PasswordInput
                   className="input"
-                  type="password"
                   value={newPw}
                   onChange={(e) => setNewPw(e.target.value)}
                   required
@@ -246,9 +245,8 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Yangi parolni takrorlang</label>
-                <input
+                <PasswordInput
                   className="input"
-                  type="password"
                   value={confirmPw}
                   onChange={(e) => setConfirmPw(e.target.value)}
                   required

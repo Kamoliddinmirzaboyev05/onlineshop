@@ -1,4 +1,5 @@
 import { KeyRound, LogOut, ShieldCheck, User } from "lucide-react";
+import PasswordInput from "../components/PasswordInput";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import InstallButton from "../components/InstallButton";
@@ -80,25 +81,22 @@ export default function ProfilePage() {
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
             <KeyRound size={16} /> Parolni o'zgartirish
           </div>
-          <input
+          <PasswordInput
             className={inputCls}
-            type="password"
             placeholder="Eski parol"
             value={oldPw}
             onChange={(e) => setOldPw(e.target.value)}
             required
           />
-          <input
+          <PasswordInput
             className={inputCls}
-            type="password"
             placeholder="Yangi parol"
             value={newPw}
             onChange={(e) => setNewPw(e.target.value)}
             required
           />
-          <input
+          <PasswordInput
             className={inputCls}
-            type="password"
             placeholder="Yangi parolni takrorlang"
             value={confirmPw}
             onChange={(e) => setConfirmPw(e.target.value)}

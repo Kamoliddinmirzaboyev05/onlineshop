@@ -7,28 +7,20 @@ from app.api.routes import (
     orders, platform, platform_auth, uploads,
 )
 from app.api.routes.uploads import UPLOAD_DIR
-from app.core.config import settings
 
 app = FastAPI(title="All Foods API", version="1.0.0")
 
-# Prod'da faqat settings.cors_origins (ADMIN_URL/COURIER_URL/TMA_URL + localhost
-# dev portlari) ruxsat etiladi. Dev'da hamma origin ochiq (mahalliy ishlash qulay bo'lsin).
-if settings.environment == "production":
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-else:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origin_regex=".*",
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+# ponytail: CORS vaqtincha HAMMA origin'ga ochiq (development). Yopish uchun
+# quyidagini `if settings.environment == "production": allow_origins=settings.cors_origins`
+# guardi bilan almashtiring. `allow_origin_regex=".*"` (allow_origins=["*"] emas) —
+# credentials bilan ishlashi uchun brauzerga so'rov Origin'ini qaytaradi.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=".*",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 api = APIRouter(prefix="/api")
 api.include_router(auth.router)

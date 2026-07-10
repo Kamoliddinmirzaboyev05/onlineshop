@@ -1,4 +1,5 @@
 import { CircleCheck, CircleX, Plus, Power, Trash2, UserPlus } from "lucide-react";
+import PasswordInput from "../components/PasswordInput";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { del, get, patch, post } from "../api";
@@ -189,9 +190,8 @@ export default function BusinessesPage() {
 
             <label className="block">
               <span className="text-xs text-slate-500">Parol</span>
-              <input
+              <PasswordInput
                 className="input mt-1"
-                type="password"
                 placeholder="parol"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}

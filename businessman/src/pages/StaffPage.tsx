@@ -1,4 +1,5 @@
 import { CircleCheck, CircleX, Plus, PowerOff, Store, Trash2, Users } from "lucide-react";
+import PasswordInput from "../components/PasswordInput";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { del, get, patch, post, withStore } from "../api";
@@ -193,9 +194,8 @@ export default function StaffPage() {
 
             <label className="block">
               <span className="text-xs text-slate-500">Parol</span>
-              <input
+              <PasswordInput
                 className="input mt-1"
-                type="password"
                 placeholder="••••••••"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}

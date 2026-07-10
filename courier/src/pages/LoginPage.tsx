@@ -1,4 +1,5 @@
 import { Bike, Lock, User } from "lucide-react";
+import PasswordInput from "../components/PasswordInput";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { enablePush } from "../push";
@@ -66,9 +67,8 @@ export default function LoginPage() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Parol</label>
             <div className="relative">
               <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
-                type="password"
+              <PasswordInput
+                className="w-full pl-9 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

@@ -1,4 +1,5 @@
 import { LogIn, Store } from "lucide-react";
+import PasswordInput from "../components/PasswordInput";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../store";
@@ -43,9 +44,8 @@ export default function LoginPage() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
-          <input
+          <PasswordInput
             className="input"
-            type="password"
             placeholder="Parol"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
