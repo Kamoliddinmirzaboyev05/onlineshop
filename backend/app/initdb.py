@@ -62,6 +62,11 @@ _PUSH_COLUMNS = (
 _USER_COLUMNS = (
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN NOT NULL DEFAULT FALSE",
 )
+# Xodim akkaunti: ism va telefon (do'kon yaratilganda tadbirkor kiritadi).
+_ADMIN_USER_COLUMNS = (
+    "ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS name VARCHAR(128)",
+    "ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS phone VARCHAR(32)",
+)
 # Do'kon sozlamalari: manzil, ega, telefonlar (JSONB array), ijtimoiy tarmoq (JSONB obyekt).
 _STORE_COLUMNS = (
     "ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS address VARCHAR(512)",
@@ -118,6 +123,7 @@ def main(engine=engine) -> None:
             *_ZONE_COLUMNS,
             *_PUSH_COLUMNS,
             *_USER_COLUMNS,
+            *_ADMIN_USER_COLUMNS,
             *_STORE_COLUMNS,
         ):
             conn.execute(text(stmt))

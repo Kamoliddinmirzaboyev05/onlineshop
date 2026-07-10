@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class BusinessOut(BaseModel):
@@ -53,6 +53,16 @@ class StoreCreateIn(BaseModel):
     avg_delivery_minutes: int = 40
     is_active: bool = True
     is_open: bool = True
+
+
+# Do'kon yaratish — do'kon nomi + uni yurituvchi xodim (login/parol) birga.
+# Tahrirlashda ishlatilmaydi (u StoreCreateIn'ni to'liq oladi).
+class StoreWithStaffCreateIn(BaseModel):
+    name: str = Field(min_length=1, max_length=128)
+    staff_name: str = Field(min_length=1, max_length=128)
+    staff_phone: str | None = None
+    staff_username: str = Field(min_length=3, max_length=64)
+    staff_password: str = Field(min_length=6, max_length=128)
 
 
 class StoreBreakdown(BaseModel):

@@ -50,6 +50,15 @@ export interface StoreInput {
   is_open: boolean;
 }
 
+// POST /business/stores tanasi — do'kon + uni yurituvchi xodim birga yaratiladi.
+export interface StoreWithStaffInput {
+  name: string;
+  staff_name: string;
+  staff_phone: string | null;
+  staff_username: string;
+  staff_password: string;
+}
+
 // ── Katalog ──────────────────────────────────────────────────────
 export interface Category {
   id: number;

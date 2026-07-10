@@ -6,8 +6,12 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_business
 from app.core.db import get_db
-from app.models import Business, Order, Restaurant
-from app.schemas.business import BusinessStatsOut, StoreBreakdown, StoreCreateIn
+from app.core.security import hash_password
+from app.models import AdminUser, Business, Order, Restaurant
+from app.models.enums import AdminRole
+from app.schemas.business import (
+    BusinessStatsOut, StoreBreakdown, StoreCreateIn, StoreWithStaffCreateIn,
+)
 from app.schemas.catalog import RestaurantOut
 
 # Tadbirkorning biznes bo'ylab amallari (bitta do'kondan yuqori daraja).
@@ -45,12 +49,25 @@ def list_stores(
 
 @router.post("/stores", response_model=RestaurantOut, status_code=201)
 def create_store(
-    data: StoreCreateIn,
+    data: StoreWithStaffCreateIn,
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    store = Restaurant(**data.model_dump(), business_id=business.id)
+    """Do'kon + uni yurituvchi xodim akkauntini (do'kon superadmini) birga
+    yaratadi. Login butun tizim bo'ylab yagona bo'lishi shart."""
+    if db.scalar(select(AdminUser).where(AdminUser.username == data.staff_username)):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Bu login band")
+    store = Restaurant(name=data.name, business_id=business.id)
     db.add(store)
+    db.flush()  # store.id kerak
+    db.add(AdminUser(
+        restaurant_id=store.id,
+        username=data.staff_username,
+        hashed_password=hash_password(data.staff_password),
+        name=data.staff_name,
+        phone=data.staff_phone,
+        role=AdminRole.superadmin,
+    ))
     db.commit()
     db.refresh(store)
     return store

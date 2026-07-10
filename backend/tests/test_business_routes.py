@@ -8,10 +8,20 @@ def test_stores_list_only_shows_own_stores(client, tenant_a, tenant_b):
     assert ids == [tenant_a.restaurant_id]
 
 
+def _store_payload(name: str, username: str) -> dict:
+    return {
+        "name": name,
+        "staff_name": "Ali Valiyev",
+        "staff_phone": "+998901112233",
+        "staff_username": username,
+        "staff_password": "secret123",
+    }
+
+
 def test_business_creates_store(client, tenant_a):
     resp = client.post(
         "/api/business/stores",
-        json={"name": "Ikkinchi do'kon"},
+        json=_store_payload("Ikkinchi do'kon", "store2_admin"),
         headers=auth(tenant_a.business_token),
     )
     assert resp.status_code == 201
@@ -19,6 +29,37 @@ def test_business_creates_store(client, tenant_a):
 
     listed = client.get("/api/business/stores", headers=auth(tenant_a.business_token))
     assert len(listed.json()) == 2
+
+
+def test_create_store_provisions_staff_login(client, tenant_a):
+    created = client.post(
+        "/api/business/stores",
+        json=_store_payload("Uchinchi do'kon", "store3_admin"),
+        headers=auth(tenant_a.business_token),
+    ).json()
+
+    # Yaratilgan xodim o'z login/paroli bilan admin panelga kira oladi.
+    login = client.post(
+        "/api/admin/auth/login",
+        json={"username": "store3_admin", "password": "secret123"},
+    )
+    assert login.status_code == 200
+    token = login.json()["access_token"]
+
+    # Va u aynan shu yangi do'konga bog'langan (superadmin).
+    me = client.get("/api/admin/auth/me", headers=auth(token)).json()
+    assert me["restaurant_id"] == created["id"]
+    assert me["role"] == "superadmin"
+
+
+def test_create_store_rejects_duplicate_username(client, tenant_a):
+    # tenant_a fixture'i allaqachon `staff_a` loginini yaratadi.
+    resp = client.post(
+        "/api/business/stores",
+        json=_store_payload("To'rtinchi do'kon", "staff_a"),
+        headers=auth(tenant_a.business_token),
+    )
+    assert resp.status_code == 409
 
 
 def test_business_cannot_update_other_store(client, tenant_a, tenant_b):
@@ -42,7 +83,7 @@ def test_store_with_orders_cannot_be_deleted(client, db_session, tenant_a):
 def test_empty_store_can_be_deleted(client, tenant_a):
     created = client.post(
         "/api/business/stores",
-        json={"name": "Bo'sh do'kon"},
+        json=_store_payload("Bo'sh do'kon", "empty_store_admin"),
         headers=auth(tenant_a.business_token),
     ).json()
     resp = client.delete(

@@ -3,12 +3,14 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { del, get, post, put } from "../api";
 import { confirm } from "../components/Confirm";
+import PasswordInput from "../components/PasswordInput";
 import { TableSkeleton } from "../components/Skeleton";
-import type { Store as StoreT, StoreInput } from "../types";
+import type { Store as StoreT, StoreInput, StoreWithStaffInput } from "../types";
 
 const money = (n: number) => n.toLocaleString("ru-RU").replace(/,/g, " ");
 
-const emptyForm: StoreInput = {
+// Tahrirlash formasi — do'kon sozlamalari (yaratishda ishlatilmaydi).
+const emptyEdit: StoreInput = {
   name: "",
   address: "",
   owner_name: "",
@@ -21,11 +23,21 @@ const emptyForm: StoreInput = {
   is_open: true,
 };
 
+// Yaratish formasi — do'kon nomi + uni yurituvchi xodim.
+const emptyCreate: StoreWithStaffInput = {
+  name: "",
+  staff_name: "",
+  staff_phone: "",
+  staff_username: "",
+  staff_password: "",
+};
+
 export default function StoresPage() {
   const [stores, setStores] = useState<StoreT[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editId, setEditId] = useState<number | null>(null); // null = closed, 0 = new
-  const [form, setForm] = useState<StoreInput>(emptyForm);
+  const [editId, setEditId] = useState<number | null>(null); // null = yopiq, 0 = yangi
+  const [form, setForm] = useState<StoreInput>(emptyEdit);
+  const [createForm, setCreateForm] = useState<StoreWithStaffInput>(emptyCreate);
   const [err, setErr] = useState("");
 
   const load = async () => {
@@ -41,7 +53,7 @@ export default function StoresPage() {
 
   const openNew = () => {
     setErr("");
-    setForm(emptyForm);
+    setCreateForm(emptyCreate);
     setEditId(0);
   };
 
@@ -62,17 +74,33 @@ export default function StoresPage() {
     setEditId(s.id);
   };
 
+  const createValid =
+    createForm.name.trim() &&
+    createForm.staff_name.trim() &&
+    createForm.staff_username.trim().length >= 3 &&
+    createForm.staff_password.length >= 6;
+
   const save = async () => {
-    if (!form.name.trim()) return;
     setErr("");
     try {
-      if (editId) await put(`/business/stores/${editId}`, form);
-      else await post("/business/stores", form);
+      if (editId) {
+        if (!form.name.trim()) return;
+        await put(`/business/stores/${editId}`, form);
+        toast.success("Do'kon yangilandi");
+      } else {
+        if (!createValid) return;
+        await post("/business/stores", {
+          ...createForm,
+          staff_phone: createForm.staff_phone?.trim() || null,
+        });
+        toast.success("Do'kon va xodim yaratildi");
+      }
       setEditId(null);
-      toast.success(editId ? "Do'kon yangilandi" : "Do'kon yaratildi");
       load();
     } catch (e) {
-      setErr(String(e).replace("Error: ", ""));
+      const raw = String(e).replace("Error: ", "");
+      if (raw.includes("login band")) setErr("Bu login band — boshqa login tanlang");
+      else setErr(raw);
     }
   };
 
@@ -168,83 +196,148 @@ export default function StoresPage() {
           <div className="card p-6 w-[28rem] max-w-full space-y-4 max-h-[90vh] overflow-y-auto">
             <h2 className="font-bold text-lg">{editId ? "Do'konni tahrirlash" : "Yangi do'kon"}</h2>
 
-            <label className="block">
-              <span className="text-xs text-slate-500">Nomi *</span>
-              <input
-                className="input mt-1"
-                placeholder="Do'kon nomi"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
-            </label>
+            {editId === 0 ? (
+              // ── Yaratish: do'kon nomi + xodim (ism, telefon, login, parol) ──
+              <>
+                <label className="block">
+                  <span className="text-xs text-slate-500">Do'kon nomi *</span>
+                  <input
+                    className="input mt-1"
+                    placeholder="Do'kon nomi"
+                    value={createForm.name}
+                    onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                  />
+                </label>
 
-            <label className="block">
-              <span className="text-xs text-slate-500">Manzil</span>
-              <input
-                className="input mt-1"
-                value={form.address ?? ""}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
-              />
-            </label>
+                <label className="block">
+                  <span className="text-xs text-slate-500">Xodim ismi *</span>
+                  <input
+                    className="input mt-1"
+                    placeholder="Do'konni yurituvchi shaxs"
+                    value={createForm.staff_name}
+                    onChange={(e) => setCreateForm({ ...createForm, staff_name: e.target.value })}
+                  />
+                </label>
 
-            <label className="block">
-              <span className="text-xs text-slate-500">Egasi</span>
-              <input
-                className="input mt-1"
-                value={form.owner_name ?? ""}
-                onChange={(e) => setForm({ ...form, owner_name: e.target.value })}
-              />
-            </label>
+                <label className="block">
+                  <span className="text-xs text-slate-500">Xodim telefoni</span>
+                  <input
+                    className="input mt-1"
+                    placeholder="+998 90 123 45 67"
+                    value={createForm.staff_phone ?? ""}
+                    onChange={(e) => setCreateForm({ ...createForm, staff_phone: e.target.value })}
+                  />
+                </label>
 
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="text-xs text-slate-500">Yetkazish narxi</span>
-                <input
-                  className="input mt-1"
-                  type="number"
-                  value={form.delivery_fee}
-                  onChange={(e) => setForm({ ...form, delivery_fee: Number(e.target.value) })}
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs text-slate-500">Min. buyurtma</span>
-                <input
-                  className="input mt-1"
-                  type="number"
-                  value={form.min_order}
-                  onChange={(e) => setForm({ ...form, min_order: Number(e.target.value) })}
-                />
-              </label>
-            </div>
+                <label className="block">
+                  <span className="text-xs text-slate-500">Login *</span>
+                  <input
+                    className="input mt-1"
+                    placeholder="Kamida 3 ta belgi"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    value={createForm.staff_username}
+                    onChange={(e) => setCreateForm({ ...createForm, staff_username: e.target.value })}
+                  />
+                </label>
 
-            <label className="block">
-              <span className="text-xs text-slate-500">O'rtacha yetkazish (daqiqa)</span>
-              <input
-                className="input mt-1"
-                type="number"
-                value={form.avg_delivery_minutes}
-                onChange={(e) => setForm({ ...form, avg_delivery_minutes: Number(e.target.value) })}
-              />
-            </label>
+                <label className="block">
+                  <span className="text-xs text-slate-500">Parol *</span>
+                  <PasswordInput
+                    className="input mt-1"
+                    placeholder="Kamida 6 ta belgi"
+                    value={createForm.staff_password}
+                    onChange={(e) => setCreateForm({ ...createForm, staff_password: e.target.value })}
+                  />
+                </label>
 
-            <div className="flex gap-6">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={form.is_active}
-                  onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-                />
-                Faol
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={form.is_open}
-                  onChange={(e) => setForm({ ...form, is_open: e.target.checked })}
-                />
-                Ochiq
-              </label>
-            </div>
+                <p className="text-xs text-slate-400">
+                  Bu login va parol bilan xodim do'kon paneliga kiradi. Yetkazish narxi,
+                  manzil va boshqa sozlamalarni keyin "Tahrirlash"dan kiritasiz.
+                </p>
+              </>
+            ) : (
+              // ── Tahrirlash: do'kon sozlamalari ──
+              <>
+                <label className="block">
+                  <span className="text-xs text-slate-500">Nomi *</span>
+                  <input
+                    className="input mt-1"
+                    placeholder="Do'kon nomi"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs text-slate-500">Manzil</span>
+                  <input
+                    className="input mt-1"
+                    value={form.address ?? ""}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs text-slate-500">Egasi</span>
+                  <input
+                    className="input mt-1"
+                    value={form.owner_name ?? ""}
+                    onChange={(e) => setForm({ ...form, owner_name: e.target.value })}
+                  />
+                </label>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="text-xs text-slate-500">Yetkazish narxi</span>
+                    <input
+                      className="input mt-1"
+                      type="number"
+                      value={form.delivery_fee}
+                      onChange={(e) => setForm({ ...form, delivery_fee: Number(e.target.value) })}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs text-slate-500">Min. buyurtma</span>
+                    <input
+                      className="input mt-1"
+                      type="number"
+                      value={form.min_order}
+                      onChange={(e) => setForm({ ...form, min_order: Number(e.target.value) })}
+                    />
+                  </label>
+                </div>
+
+                <label className="block">
+                  <span className="text-xs text-slate-500">O'rtacha yetkazish (daqiqa)</span>
+                  <input
+                    className="input mt-1"
+                    type="number"
+                    value={form.avg_delivery_minutes}
+                    onChange={(e) => setForm({ ...form, avg_delivery_minutes: Number(e.target.value) })}
+                  />
+                </label>
+
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.is_active}
+                      onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+                    />
+                    Faol
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.is_open}
+                      onChange={(e) => setForm({ ...form, is_open: e.target.checked })}
+                    />
+                    Ochiq
+                  </label>
+                </div>
+              </>
+            )}
 
             {err && (
               <div className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{err}</div>
@@ -254,7 +347,11 @@ export default function StoresPage() {
               <button className="btn-ghost" onClick={() => setEditId(null)}>
                 <CircleX size={16} /> Bekor
               </button>
-              <button className="btn" onClick={save} disabled={!form.name.trim()}>
+              <button
+                className="btn"
+                onClick={save}
+                disabled={editId === 0 ? !createValid : !form.name.trim()}
+              >
                 <CircleCheck size={16} /> Saqlash
               </button>
             </div>

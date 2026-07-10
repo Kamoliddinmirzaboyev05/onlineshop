@@ -16,6 +16,8 @@ class AdminUser(Base):
     )
     username: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255))
+    name: Mapped[str | None] = mapped_column(String(128))
+    phone: Mapped[str | None] = mapped_column(String(32))
     role: Mapped[AdminRole] = mapped_column(Enum(AdminRole), default=AdminRole.manager)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
