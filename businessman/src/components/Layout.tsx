@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, LogOut, Menu, Package, ReceiptText, Store, Users, UtensilsCrossed, Warehouse, X,
+  LayoutDashboard, LogOut, Menu, Package, ReceiptText, Settings, Store, Users, UtensilsCrossed, Warehouse, X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
@@ -15,6 +15,7 @@ const links = [
   { to: "/orders", label: "Buyurtmalar", icon: ReceiptText },
   { to: "/customers", label: "Mijozlar", icon: Users },
   { to: "/staff", label: "Xodimlar", icon: UtensilsCrossed },
+  { to: "/settings", label: "Sozlamalar", icon: Settings },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {

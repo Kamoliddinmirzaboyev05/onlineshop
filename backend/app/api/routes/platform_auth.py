@@ -5,10 +5,11 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_platform_admin
 from app.core.db import get_db
 from app.core.ratelimit import rate_limiter
-from app.core.security import create_access_token, verify_password
+from app.core.security import create_access_token, hash_password, verify_password
 from app.models import PlatformAdmin
 from app.schemas.auth import AdminLoginIn, TokenOut
 from app.schemas.business import PlatformAdminOut
+from app.schemas.courier import ChangePasswordIn
 
 router = APIRouter(prefix="/platform/auth", tags=["platform-auth"])
 
@@ -28,3 +29,17 @@ def platform_login(data: AdminLoginIn, db: Session = Depends(get_db)):
 @router.get("/me", response_model=PlatformAdminOut)
 def platform_me(admin: PlatformAdmin = Depends(get_current_platform_admin)):
     return admin
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    data: ChangePasswordIn,
+    admin: PlatformAdmin = Depends(get_current_platform_admin),
+    db: Session = Depends(get_db),
+):
+    if not verify_password(data.old_password, admin.hashed_password):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Eski parol noto'g'ri")
+    if data.new_password == data.old_password:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Yangi parol eskisidan farq qilishi kerak")
+    admin.hashed_password = hash_password(data.new_password)
+    db.commit()

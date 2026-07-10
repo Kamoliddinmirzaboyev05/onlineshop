@@ -9,6 +9,7 @@ import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import OrdersPage from "./pages/OrdersPage";
 import ProductsPage from "./pages/ProductsPage";
+import SettingsPage from "./pages/SettingsPage";
 import StaffPage from "./pages/StaffPage";
 import StoresPage from "./pages/StoresPage";
 import WarehousePage from "./pages/WarehousePage";
@@ -57,6 +58,7 @@ export default function App() {
         <Route path="/orders" element={<Protected><OrdersPage /></Protected>} />
         <Route path="/customers" element={<Protected><CustomersPage /></Protected>} />
         <Route path="/staff" element={<Protected><StaffPage /></Protected>} />
+        <Route path="/settings" element={<Protected><SettingsPage /></Protected>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

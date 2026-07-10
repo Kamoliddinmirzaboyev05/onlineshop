@@ -7,6 +7,7 @@ interface AuthState {
   login: (username: string, password: string) => Promise<void>;
   loadMe: () => Promise<void>;
   logout: () => void;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
 }
 
 export const useAuth = create<AuthState>((set) => ({
@@ -35,5 +36,11 @@ export const useAuth = create<AuthState>((set) => ({
   logout: () => {
     setToken(null);
     set({ admin: null });
+  },
+  changePassword: async (oldPassword, newPassword) => {
+    await post("/platform/auth/change-password", {
+      old_password: oldPassword,
+      new_password: newPassword,
+    });
   },
 }));

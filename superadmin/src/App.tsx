@@ -9,6 +9,7 @@ import BusinessesPage from "./pages/BusinessesPage";
 import CustomersPage from "./pages/CustomersPage";
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
+import SettingsPage from "./pages/SettingsPage";
 import { useAuth } from "./store";
 
 function Protected({ children }: { children: React.ReactNode }) {
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/businesses" element={<Protected><BusinessesPage /></Protected>} />
         <Route path="/customers" element={<Protected><CustomersPage /></Protected>} />
         <Route path="/announcements" element={<Protected><AnnouncementsPage /></Protected>} />
+        <Route path="/settings" element={<Protected><SettingsPage /></Protected>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

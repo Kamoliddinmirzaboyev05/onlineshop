@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, LogOut, Megaphone, Menu, Shield, Store, Users, X,
+  LayoutDashboard, LogOut, Megaphone, Menu, Settings, Shield, Store, Users, X,
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
@@ -10,6 +10,7 @@ const links = [
   { to: "/businesses", label: "Tadbirkorlar", icon: Store },
   { to: "/customers", label: "Mijozlar", icon: Users },
   { to: "/announcements", label: "E'lonlar", icon: Megaphone },
+  { to: "/settings", label: "Sozlamalar", icon: Settings },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
