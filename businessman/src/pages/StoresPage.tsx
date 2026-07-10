@@ -136,13 +136,12 @@ export default function StoresPage() {
         </button>
       </div>
 
-      {loading ? <TableSkeleton cols={5} /> : (
+      {loading ? <TableSkeleton cols={4} /> : (
         <div className="card overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50">
                 <th className="th">Nomi</th>
-                <th className="th">Manzil</th>
                 <th className="th">Yetkazish</th>
                 <th className="th">Min. buyurtma</th>
                 <th className="th">Holati</th>
@@ -153,7 +152,6 @@ export default function StoresPage() {
               {stores.map((s) => (
                 <tr key={s.id} className="hover:bg-slate-50/60">
                   <td className="td font-medium text-slate-900">{s.name}</td>
-                  <td className="td text-slate-500">{s.address || "—"}</td>
                   <td className="td">{money(s.delivery_fee)} so'm</td>
                   <td className="td">{money(s.min_order)} so'm</td>
                   <td className="td">
@@ -180,7 +178,7 @@ export default function StoresPage() {
               ))}
               {stores.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="td text-center text-slate-400 py-10">
+                  <td colSpan={5} className="td text-center text-slate-400 py-10">
                     <Store size={28} className="mx-auto mb-2 opacity-30" />
                     Hali do'kon yo'q — "Yangi do'kon" tugmasini bosing
                   </td>
@@ -252,8 +250,8 @@ export default function StoresPage() {
                 </label>
 
                 <p className="text-xs text-slate-400">
-                  Bu login va parol bilan xodim do'kon paneliga kiradi. Yetkazish narxi,
-                  manzil va boshqa sozlamalarni keyin "Tahrirlash"dan kiritasiz.
+                  Bu login va parol bilan xodim do'kon paneliga kiradi. Yetkazish narxi
+                  va boshqa sozlamalarni keyin "Tahrirlash"dan kiritasiz.
                 </p>
               </>
             ) : (
@@ -266,15 +264,6 @@ export default function StoresPage() {
                     placeholder="Do'kon nomi"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="text-xs text-slate-500">Manzil</span>
-                  <input
-                    className="input mt-1"
-                    value={form.address ?? ""}
-                    onChange={(e) => setForm({ ...form, address: e.target.value })}
                   />
                 </label>
 
