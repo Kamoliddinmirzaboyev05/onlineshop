@@ -25,7 +25,7 @@ export default function CustomersPage() {
     return (
       <div>
         <h1 className="text-2xl font-bold tracking-tight mb-1">Mijozlar</h1>
-        <div className="card p-10 text-center text-slate-400 mt-5">Avval do'kon tanlang</div>
+        <div className="card p-10 text-center text-slate-400 mt-5">Avval "Do'konlar" bo'limida do'kon yarating, so'ng yuqoridagi ro'yxatdan tanlang</div>
       </div>
     );
   }

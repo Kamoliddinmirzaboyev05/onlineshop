@@ -138,7 +138,7 @@ export default function WarehousePage() {
         <h1 className="text-2xl font-bold tracking-tight mb-1">Ombor</h1>
         <div className="card p-10 text-center text-slate-400 mt-5">
           <Store size={32} className="mx-auto mb-3 opacity-30" />
-          Avval do'kon tanlang
+          Avval "Do'konlar" bo'limida do'kon yarating, so'ng yuqoridagi ro'yxatdan tanlang
         </div>
       </div>
     );
