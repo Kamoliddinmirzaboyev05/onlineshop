@@ -162,7 +162,7 @@ def platform_stats(period: str = "month", db: Session = Depends(get_db)):
         ).all()
         orders = revenue = profit = 0
         for store in stores:
-            o, r, p = _agg(db, store.id, start)
+            o, r, p = _agg(db, [store.id], start)
             orders += o
             revenue += r
             profit += p

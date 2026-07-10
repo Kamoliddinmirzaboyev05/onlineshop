@@ -9,6 +9,7 @@ import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import OrdersPage from "./pages/OrdersPage";
 import ProductsPage from "./pages/ProductsPage";
+import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import StaffPage from "./pages/StaffPage";
 import StoresPage from "./pages/StoresPage";
@@ -52,6 +53,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<Protected><DashboardPage /></Protected>} />
+        <Route path="/reports" element={<Protected><ReportsPage /></Protected>} />
         <Route path="/stores" element={<Protected><StoresPage /></Protected>} />
         <Route path="/products" element={<Protected><ProductsPage /></Protected>} />
         <Route path="/warehouse" element={<Protected><WarehousePage /></Protected>} />

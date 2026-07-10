@@ -10,7 +10,8 @@ from app.core.security import hash_password
 from app.models import AdminUser, Business, Order, Restaurant
 from app.models.enums import AdminRole
 from app.schemas.business import (
-    BusinessStatsOut, StoreBreakdown, StoreCreateIn, StoreWithStaffCreateIn,
+    BusinessReportsOut, BusinessStatsOut, StoreBreakdown, StoreCreateIn,
+    StoreWithStaffCreateIn,
 )
 from app.schemas.catalog import RestaurantOut
 
@@ -124,7 +125,7 @@ def business_stats(
 
     breakdown: list[StoreBreakdown] = []
     for store in stores:
-        orders, revenue, profit = _agg(db, store.id, start)
+        orders, revenue, profit = _agg(db, [store.id], start)
         breakdown.append(StoreBreakdown(
             restaurant_id=store.id, name=store.name,
             orders=orders, revenue=revenue, cost=revenue - profit, profit=profit,
@@ -135,5 +136,40 @@ def business_stats(
         total_revenue=sum(s.revenue for s in breakdown),
         total_cost=sum(s.cost for s in breakdown),
         total_profit=sum(s.profit for s in breakdown),
+        stores=breakdown,
+    )
+
+
+@router.get("/reports", response_model=BusinessReportsOut)
+def business_reports(
+    business: Business = Depends(get_current_business),
+    db: Session = Depends(get_db),
+):
+    """Chart'lar uchun: biznes bo'ylab jamlangan vaqt qatorlari (kunlik/haftalik/
+    oylik), top mahsulotlar va so'nggi 30 kun do'kon kesimi."""
+    from app.api.routes.admin import _agg, _series, _top_products
+
+    stores = db.scalars(
+        select(Restaurant).where(Restaurant.business_id == business.id).order_by(Restaurant.id)
+    ).all()
+    ids = [s.id for s in stores]
+    if not ids:
+        return BusinessReportsOut()
+
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = today - timedelta(days=30)
+    breakdown: list[StoreBreakdown] = []
+    for store in stores:
+        orders, revenue, profit = _agg(db, [store.id], month_start)
+        breakdown.append(StoreBreakdown(
+            restaurant_id=store.id, name=store.name,
+            orders=orders, revenue=revenue, cost=revenue - profit, profit=profit,
+        ))
+
+    return BusinessReportsOut(
+        daily=_series(db, ids, "day", today - timedelta(days=30)),
+        weekly=_series(db, ids, "week", today - timedelta(weeks=12)),
+        monthly=_series(db, ids, "month", today - timedelta(days=365)),
+        top_products=_top_products(db, ids, limit=20),
         stores=breakdown,
     )

@@ -148,9 +148,9 @@ def push_test(_: AdminUser = Depends(require_staff)):
 # Profit = Σ (sotuv narxi − tannarx) × soni, faqat yetkazilgan buyurtmalar.
 # Tannarx OrderItem.cost dan olinadi — sotuv vaqtidagi snapshot (Product.cost
 # keyin o'zgarsa ham tarixiy foyda buzilmaydi).
-def _agg(db: Session, restaurant_id: int, start: datetime | None = None) -> tuple[int, int, int]:
+def _agg(db: Session, rids: list[int], start: datetime | None = None) -> tuple[int, int, int]:
     delivered = OrderStatus.delivered
-    cond = [Order.status == delivered, Order.restaurant_id == restaurant_id]
+    cond = [Order.status == delivered, Order.restaurant_id.in_(rids)]
     if start is not None:
         cond.append(Order.created_at >= start)
 
@@ -171,7 +171,7 @@ def _agg(db: Session, restaurant_id: int, start: datetime | None = None) -> tupl
     return int(orders), int(revenue), int(profit)
 
 
-def _series(db: Session, restaurant_id: int, trunc: str, start: datetime) -> list[PeriodPoint]:
+def _series(db: Session, rids: list[int], trunc: str, start: datetime) -> list[PeriodPoint]:
     delivered = OrderStatus.delivered
     period = func.date_trunc(trunc, Order.created_at)
     rows = db.execute(
@@ -188,7 +188,7 @@ def _series(db: Session, restaurant_id: int, trunc: str, start: datetime) -> lis
         .where(
             Order.status == delivered,
             Order.created_at >= start,
-            Order.restaurant_id == restaurant_id,
+            Order.restaurant_id.in_(rids),
         )
         .group_by(period)
         .order_by(period)
@@ -199,7 +199,7 @@ def _series(db: Session, restaurant_id: int, trunc: str, start: datetime) -> lis
     ]
 
 
-def _top_products(db: Session, restaurant_id: int, limit: int = 20) -> list[TopProduct]:
+def _top_products(db: Session, rids: list[int], limit: int = 20) -> list[TopProduct]:
     delivered = OrderStatus.delivered
     rows = db.execute(
         select(
@@ -215,7 +215,7 @@ def _top_products(db: Session, restaurant_id: int, limit: int = 20) -> list[TopP
         .select_from(OrderItem)
         .join(Order, Order.id == OrderItem.order_id)
         .join(Product, Product.id == OrderItem.product_id)
-        .where(Order.status == delivered, Order.restaurant_id == restaurant_id)
+        .where(Order.status == delivered, Order.restaurant_id.in_(rids))
         .group_by(Product.id, Product.name_uz, Product.image_url)
         .order_by(func.sum(OrderItem.quantity).desc())
         .limit(limit)
@@ -238,10 +238,10 @@ def stats(store: Restaurant = Depends(current_restaurant), db: Session = Depends
     week = today - timedelta(days=7)
     month = today - timedelta(days=30)
 
-    o_today, r_today, p_today = _agg(db, rid, today)
-    o_week, r_week, p_week = _agg(db, rid, week)
-    o_month, r_month, p_month = _agg(db, rid, month)
-    o_total, r_total, p_total = _agg(db, rid, None)
+    o_today, r_today, p_today = _agg(db, [rid], today)
+    o_week, r_week, p_week = _agg(db, [rid], week)
+    o_month, r_month, p_month = _agg(db, [rid], month)
+    o_total, r_total, p_total = _agg(db, [rid], None)
 
     pending_orders = db.scalar(
         select(func.count(Order.id)).where(
@@ -269,7 +269,7 @@ def stats(store: Restaurant = Depends(current_restaurant), db: Session = Depends
         users_total=users_total,
         products_total=products_total,
         low_stock_count=low_stock_count,
-        top_products=_top_products(db, rid, limit=5),
+        top_products=_top_products(db, [rid], limit=5),
     )
 
 
@@ -280,10 +280,10 @@ def reports(store: Restaurant = Depends(current_restaurant), db: Session = Depen
     now = datetime.now(timezone.utc)
     today = now.replace(hour=0, minute=0, second=0, microsecond=0)
     return ReportsOut(
-        daily=_series(db, rid, "day", today - timedelta(days=30)),
-        weekly=_series(db, rid, "week", today - timedelta(weeks=12)),
-        monthly=_series(db, rid, "month", today - timedelta(days=365)),
-        top_products=_top_products(db, rid, limit=20),
+        daily=_series(db, [rid], "day", today - timedelta(days=30)),
+        weekly=_series(db, [rid], "week", today - timedelta(weeks=12)),
+        monthly=_series(db, [rid], "month", today - timedelta(days=365)),
+        top_products=_top_products(db, [rid], limit=20),
     )
 
 

@@ -173,3 +173,30 @@ export interface BusinessStats {
   total_profit: number;
   stores: StoreBreakdown[];
 }
+
+// Vaqt qatoridagi bitta nuqta (kun/hafta/oy).
+export interface PeriodPoint {
+  period: string;   // ISO sana
+  orders: number;
+  revenue: number;
+  profit: number;
+}
+
+// Eng ko'p sotilgan mahsulot qatori.
+export interface TopProduct {
+  product_id: number;
+  name_uz: string;
+  image_url: string | null;
+  quantity: number;
+  revenue: number;
+  profit: number;
+}
+
+// GET /business/reports — chart'lar uchun.
+export interface BusinessReports {
+  daily: PeriodPoint[];
+  weekly: PeriodPoint[];
+  monthly: PeriodPoint[];
+  top_products: TopProduct[];
+  stores: StoreBreakdown[];   // so'nggi 30 kun, do'kon kesimi
+}

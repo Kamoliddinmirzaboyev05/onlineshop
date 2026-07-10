@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, LogOut, Menu, Package, ReceiptText, Settings, Store, Users, UtensilsCrossed, Warehouse, X,
+  BarChart3, LayoutDashboard, LogOut, Menu, Package, ReceiptText, Settings, Store, Users, UtensilsCrossed, Warehouse, X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
@@ -9,6 +9,7 @@ import type { Store as StoreT } from "../types";
 
 const links = [
   { to: "/", label: "Umumiy", icon: LayoutDashboard, end: true },
+  { to: "/reports", label: "Hisobotlar", icon: BarChart3 },
   { to: "/stores", label: "Do'konlar", icon: Store },
   { to: "/products", label: "Mahsulotlar", icon: Package },
   { to: "/warehouse", label: "Ombor", icon: Warehouse },
