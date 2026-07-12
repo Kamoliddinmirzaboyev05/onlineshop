@@ -223,7 +223,7 @@ def _top_products(db: Session, rids: list[int], limit: int = 20) -> list[TopProd
     return [
         TopProduct(
             product_id=pid, name_uz=name, image_url=img,
-            quantity=int(qty), revenue=int(rev), profit=int(prof),
+            quantity=float(qty), revenue=int(rev), profit=int(prof),
         )
         for pid, name, img, qty, rev, prof in rows
     ]

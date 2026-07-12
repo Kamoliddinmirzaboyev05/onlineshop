@@ -41,5 +41,12 @@ def change_password(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Eski parol noto'g'ri")
     if data.new_password == data.old_password:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Yangi parol eskisidan farq qilishi kerak")
+
+    if data.new_username and data.new_username != business.username:
+        existing = db.scalar(select(Business).where(Business.username == data.new_username))
+        if existing:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Bu login allaqachon band")
+        business.username = data.new_username
+
     business.hashed_password = hash_password(data.new_password)
     db.commit()

@@ -121,7 +121,7 @@ class OrderItem(Base):
     image_url: Mapped[str | None] = mapped_column(String(512))          # rasm snapshot
     price: Mapped[int] = mapped_column(Integer)                         # sotuv narxi snapshot
     cost: Mapped[int] = mapped_column(Integer, default=0)               # tannarx snapshot
-    quantity: Mapped[int] = mapped_column(Integer, default=1)
+    quantity: Mapped[float] = mapped_column(Float, default=1.0)
     unit: Mapped[str] = mapped_column(String(32), default="dona")       # o'lchov birligi snapshot (kg/dona/litr)
     note: Mapped[str | None] = mapped_column(Text)                      # mahsulotga mijoz izohi
 

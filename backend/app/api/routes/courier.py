@@ -16,6 +16,7 @@ from app.schemas.courier import (
     DaySeries,
     EarningsDay,
     EarningsOut,
+    OrderAdjustIn,
     StatBucket,
 )
 from app.schemas.order import OrderOut, OrderStatusUpdate
@@ -94,6 +95,42 @@ def courier_order(
     # O'ziniki yoki hali biriktirilmagan buyurtmani ko'rishi mumkin.
     if not order or order.assigned_courier_id not in (None, courier.id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Order not found")
+    return order
+
+
+@router.patch("/orders/{order_id}/adjust", response_model=OrderOut)
+def courier_adjust_order(
+    order_id: int,
+    data: OrderAdjustIn,
+    courier: AdminUser = Depends(get_current_courier),
+    db: Session = Depends(get_db),
+):
+    order = db.get(Order, order_id)
+    if not order or order.assigned_courier_id != courier.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Order not found")
+
+    if order.status not in (OrderStatus.accepted, OrderStatus.preparing, OrderStatus.ready):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Can only adjust order before delivering starts",
+        )
+
+    adjust_map = {item.order_item_id: item.quantity for item in data.items}
+
+    new_items_total = 0
+    for item in order.items:
+        if item.id in adjust_map:
+            item.quantity = adjust_map[item.id]
+        new_items_total += item.price * item.quantity
+
+    # Remove items with 0 quantity
+    order.items = [item for item in order.items if item.quantity > 0]
+
+    order.items_total = round(new_items_total)
+    order.total = order.items_total + order.delivery_fee
+
+    db.commit()
+    db.refresh(order)
     return order
 
 

@@ -55,7 +55,7 @@ class TopProduct(BaseModel):
     product_id: int
     name_uz: str
     image_url: str | None = None
-    quantity: int
+    quantity: float
     revenue: int
     profit: int
 

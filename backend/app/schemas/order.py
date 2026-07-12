@@ -25,7 +25,7 @@ class AddressOut(AddressIn):
 
 class CartItemIn(BaseModel):
     product_id: int
-    quantity: int = Field(ge=1)
+    quantity: float = Field(gt=0)
     note: str | None = None         # mahsulotga mijoz izohi (masalan "yetilgan bo'lsin")
 
 
@@ -49,7 +49,7 @@ class OrderItemOut(BaseModel):
     name_ru: str
     image_url: str | None = None
     price: int
-    quantity: int
+    quantity: float
     unit: str = "dona"
     note: str | None = None
 

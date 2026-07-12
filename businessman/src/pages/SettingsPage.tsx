@@ -6,6 +6,7 @@ import { useAuth } from "../store";
 
 export default function SettingsPage() {
   const { changePassword } = useAuth();
+  const [newUsername, setNewUsername] = useState("");
   const [oldPw, setOldPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
@@ -23,16 +24,18 @@ export default function SettingsPage() {
     }
     setSaving(true);
     try {
-      await changePassword(oldPw, newPw);
-      toast.success("Parol o'zgartirildi");
+      await changePassword(oldPw, newPw, newUsername || undefined);
+      toast.success("Muvaffaqiyatli o'zgartirildi");
       setOldPw("");
       setNewPw("");
       setConfirmPw("");
+      setNewUsername("");
     } catch (err) {
       const raw = String(err);
       if (raw.includes("Eski parol")) toast.error("Eski parol noto'g'ri");
       else if (raw.includes("farq qilishi")) toast.error("Yangi parol eskisidan farq qilsin");
-      else toast.error("Parolni o'zgartirib bo'lmadi");
+      else if (raw.includes("login allaqachon band")) toast.error("Bu login allaqachon band");
+      else toast.error("O'zgartirib bo'lmadi");
     } finally {
       setSaving(false);
     }
@@ -43,8 +46,15 @@ export default function SettingsPage() {
       <h1 className="text-lg font-semibold mb-4">Sozlamalar</h1>
       <form onSubmit={submit} className="card p-4 space-y-3">
         <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-          <KeyRound size={16} /> Parolni o'zgartirish
+          <KeyRound size={16} /> Login va Parolni o'zgartirish
         </div>
+        <input
+          type="text"
+          className="input"
+          placeholder="Yangi login (ixtiyoriy)"
+          value={newUsername}
+          onChange={(e) => setNewUsername(e.target.value)}
+        />
         <PasswordInput
           className="input"
           placeholder="Eski parol"
@@ -67,7 +77,7 @@ export default function SettingsPage() {
           required
         />
         <button type="submit" disabled={saving} className="btn">
-          <KeyRound size={16} /> {saving ? "Saqlanmoqda…" : "Parolni saqlash"}
+          <KeyRound size={16} /> {saving ? "Saqlanmoqda…" : "Saqlash"}
         </button>
       </form>
     </div>

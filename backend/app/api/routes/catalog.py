@@ -11,6 +11,7 @@ from app.schemas.catalog import (
     RestaurantOut,
     SubcategoryOut,
 )
+from app.services.geo import haversine_km
 
 router = APIRouter(prefix="/restaurants", tags=["catalog"])
 
@@ -62,6 +63,32 @@ def get_default_store(db: Session = Depends(get_db)):
     if not restaurant:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No store")
     return _build_detail(restaurant, db)
+
+
+@router.get("/nearest", response_model=RestaurantDetail)
+def get_nearest_store(lat: float, lng: float, db: Session = Depends(get_db)):
+    restaurants = db.scalars(
+        select(Restaurant).where(Restaurant.is_active.is_(True))
+    ).all()
+    
+    if not restaurants:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No active stores found")
+    
+    nearest_restaurant = None
+    min_distance = float('inf')
+    
+    for r in restaurants:
+        if r.lat is not None and r.lng is not None:
+            dist = haversine_km(lat, lng, r.lat, r.lng)
+            if dist < min_distance:
+                min_distance = dist
+                nearest_restaurant = r
+                
+    if not nearest_restaurant:
+        # Fallback if no restaurant has coordinates
+        nearest_restaurant = restaurants[0]
+        
+    return _build_detail(nearest_restaurant, db)
 
 
 @router.get("/{restaurant_id}", response_model=RestaurantDetail)

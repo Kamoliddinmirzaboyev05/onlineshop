@@ -35,6 +35,8 @@ _ORDER_ITEM_COLUMNS = (
     # o'lchov birligi snapshot (kg/dona/litr) + mahsulotga mijoz izohi
     "ALTER TABLE order_items ADD COLUMN IF NOT EXISTS unit VARCHAR(32) NOT NULL DEFAULT 'dona'",
     "ALTER TABLE order_items ADD COLUMN IF NOT EXISTS note TEXT",
+    # quantity endi kasr bo'lishi mumkin (kg kabi o'lchovlar) — model Integer'dan Float'ga o'tdi.
+    "ALTER TABLE order_items ALTER COLUMN quantity TYPE DOUBLE PRECISION",
 )
 
 # Yetkazish oqimi: kuryerga biriktirish, doira zona, kuryer push obunasi.
