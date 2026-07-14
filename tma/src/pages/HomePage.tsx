@@ -85,20 +85,10 @@ export default function HomePage() {
   ].filter((s) => s.cats.length > 0);
 
   return (
-    <div className="min-h-full bg-tg-bg">
+    <div className="min-h-full bg-tg-bg pb-16">
       <PageHeader title="AllFoods" />
 
-      <div className="px-3 pt-3 pb-2">
-        <button
-          onClick={() => nav("/search")}
-          className="w-full flex items-center gap-2 bg-tg-card rounded-xl px-3.5 py-2.5 text-tg-hint active:scale-[0.99] transition"
-        >
-          <Search size={18} />
-          <span className="text-sm">{t.search}</span>
-        </button>
-      </div>
-
-      <div className="px-3 pb-4 pt-1">
+      <div className="px-3 pb-4 pt-4">
         {outOfRange ? (
           <p className="text-center text-tg-hint py-16 px-4">{t.out_of_range}</p>
         ) : error ? (
@@ -110,7 +100,7 @@ export default function HomePage() {
         ) : (
           sections.map((section, si) => (
             <div key={section.key} className="mb-6 last:mb-0">
-              {section.title && <h2 className="text-xl font-extrabold px-1 mb-3">{section.title}</h2>}
+              {section.title && <h2 className="text-xl font-extrabold px-1 mb-4 text-slate-800">{section.title}</h2>}
               <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-2 gap-3">
                 {section.cats.map((c) => (
                   <motion.button
@@ -118,22 +108,19 @@ export default function HomePage() {
                     variants={card}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => open(c)}
-                    className={`relative h-36 rounded-2xl overflow-hidden text-left p-3.5 flex flex-col ${PALETTES[si % PALETTES.length]}`}
+                    className={`relative h-40 rounded-3xl overflow-hidden text-left p-4 flex flex-col ${PALETTES[si % PALETTES.length]}`}
                   >
-                    <h3 className="font-bold text-slate-900 text-base leading-tight">
+                    <h3 className="font-bold text-slate-900 text-[17px] leading-tight z-10 w-[80%]">
                       {loc(c, "name", lang)}
                     </h3>
-                    {productCount(c) > 0 && (
-                      <span className="text-xs text-slate-600/70 mt-0.5">{productCount(c)} {t.products_n}</span>
-                    )}
                     {c.image_url ? (
                       <img
                         src={c.image_url}
                         alt=""
-                        className="absolute bottom-1 right-1 h-20 w-20 object-contain drop-shadow-sm"
+                        className="absolute -bottom-2 -right-2 h-28 w-28 object-contain drop-shadow-md z-0"
                       />
                     ) : (
-                      <ChevronRight size={18} className="absolute bottom-3 right-3 text-slate-500" />
+                      <ChevronRight size={18} className="absolute bottom-4 right-4 text-slate-500/50" />
                     )}
                   </motion.button>
                 ))}
