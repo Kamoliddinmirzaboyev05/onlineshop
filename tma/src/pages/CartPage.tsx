@@ -55,22 +55,22 @@ export default function CartPage() {
                 1{product.unit ? unitLabel(product.unit, lang) : ""}
               </p>
               <div className="flex items-center justify-between gap-2 mt-1.5">
-                <span className="font-bold text-lg">{money(product.price * quantity)}</span>
-                <div className="flex items-center gap-1 rounded-full bg-tg-card px-1 py-1">
+                <span className="font-extrabold text-[17px] text-slate-900">{money(product.price * quantity)}</span>
+                <div className="flex items-center gap-1 rounded-full bg-slate-100 px-1 py-1">
                   <button
                     onClick={() => cart.setQty(product.id, quantity - 1)}
-                    className="h-7 w-7 rounded-full flex items-center justify-center active:scale-90 transition"
+                    className="h-8 w-8 flex items-center justify-center text-slate-600 active:scale-90 transition"
                   >
-                    <Minus size={14} />
+                    <Minus size={16} />
                   </button>
-                  <span className="min-w-[3rem] text-center text-sm font-bold">
-                    {quantity}{product.unit ? unitLabel(product.unit, lang) : ""}
+                  <span className="min-w-[2.5rem] text-center text-[15px] font-medium text-slate-900">
+                    {quantity} {product.unit ? unitLabel(product.unit, lang) : ""}
                   </span>
                   <button
                     onClick={() => cart.setQty(product.id, quantity + 1)}
-                    className="h-7 w-7 rounded-full bg-brand text-white flex items-center justify-center active:scale-90 transition"
+                    className="h-8 w-8 flex items-center justify-center text-slate-600 active:scale-90 transition"
                   >
-                    <Plus size={14} />
+                    <Plus size={16} />
                   </button>
                 </div>
               </div>
@@ -79,27 +79,31 @@ export default function CartPage() {
         ))}
       </div>
 
-      <div className="fixed bottom-16 inset-x-0 bg-tg-bg border-t border-black/5 px-4 py-3 flex items-center justify-between gap-2 rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.06)] z-20">
-        <button
-          onClick={() => {
-            cart.clear();
-            haptic("light");
-          }}
-          className="text-[15px] font-bold text-rose-500 shrink-0"
-        >
-          {t.clear_cart}
-        </button>
-        <div className="flex-1 text-center flex flex-col items-center justify-center min-w-0">
-          <p className="text-[12px] text-slate-500 font-medium leading-none mb-1">{t.products_n}</p>
-          <p className="font-extrabold text-[16px] leading-none whitespace-nowrap text-slate-900">{money(cart.total())} {t.sum}</p>
+      <div className="fixed bottom-16 inset-x-0 bg-white border-t border-black/5 flex flex-col z-20">
+        <div className="flex justify-end px-4 py-2">
+          <button
+            onClick={() => {
+              cart.clear();
+              haptic("light");
+            }}
+            className="text-[13px] font-bold text-rose-500 bg-rose-50 px-4 py-1.5 rounded-full active:scale-95 transition"
+          >
+            {t.clear_cart}
+          </button>
         </div>
-        <button
-          onClick={() => nav("/checkout")}
-          className="shrink-0 flex items-center gap-1.5 bg-slate-900 text-white font-semibold rounded-full pl-5 pr-4 py-3 active:scale-95 transition"
-        >
-          {t.place_order}
-          <span aria-hidden>→</span>
-        </button>
+        <div className="px-4 pb-4 pt-1 flex items-center justify-between gap-4">
+          <div className="flex flex-col">
+            <p className="text-[14px] text-slate-500 font-medium leading-none mb-1.5">{t.products_n}</p>
+            <p className="font-extrabold text-[24px] leading-none text-slate-900">{money(cart.total())}</p>
+          </div>
+          <button
+            onClick={() => nav("/checkout")}
+            className="flex items-center gap-2 bg-[#121822] text-white font-semibold rounded-[20px] px-6 py-4 active:scale-95 transition"
+          >
+            {t.place_order}
+            <span aria-hidden className="text-lg leading-none">→</span>
+          </button>
+        </div>
       </div>
     </div>
   );
