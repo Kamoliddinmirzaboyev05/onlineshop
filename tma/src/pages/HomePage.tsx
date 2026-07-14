@@ -129,7 +129,7 @@ export default function HomePage() {
                         <img
                           src={c.image_url}
                           alt=""
-                          className="absolute bottom-3 right-3 w-[80%] h-[80%] object-contain object-right-bottom z-0"
+                          className="absolute inset-0 w-full h-full object-contain z-0"
                         />
                       ) : (
                         <ChevronRight size={18} className="absolute bottom-4 right-4 text-slate-500/50" />
