@@ -13,8 +13,8 @@ import { haptic } from "../telegram";
 
 // Kartochka foni bo'sh bo'lganda — Title guruhi bo'yicha barqaror pastel rang.
 const PALETTES = [
-  "bg-[#DCF2E3]",
-  "bg-[#DCEAFB]",
+  "bg-[#E1F3D8]", // Green for Meva va sabzavotlar
+  "bg-[#CDE3FC]", // Blue for Sut mahsulotlari
   "bg-[#FBE9D0]",
   "bg-[#F7DEE6]",
   "bg-[#E6E0FB]",
@@ -108,16 +108,16 @@ export default function HomePage() {
                     variants={card}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => open(c)}
-                    className={`relative h-40 rounded-3xl overflow-hidden text-left p-4 flex flex-col ${PALETTES[si % PALETTES.length]}`}
+                    className={`relative h-[180px] rounded-[24px] overflow-hidden text-left p-4 flex flex-col ${PALETTES[si % PALETTES.length]}`}
                   >
-                    <h3 className="font-bold text-slate-900 text-[17px] leading-tight z-10 w-[80%]">
+                    <h3 className="font-bold text-slate-900 text-[17px] leading-tight z-10 pr-2">
                       {loc(c, "name", lang)}
                     </h3>
                     {c.image_url ? (
                       <img
                         src={c.image_url}
                         alt=""
-                        className="absolute -bottom-2 -right-2 h-28 w-28 object-contain drop-shadow-md z-0"
+                        className="absolute bottom-0 right-0 h-[85%] w-[90%] object-contain z-0"
                       />
                     ) : (
                       <ChevronRight size={18} className="absolute bottom-4 right-4 text-slate-500/50" />

@@ -12,7 +12,7 @@ interface Props {
 export default function PageHeader({ title, subtitle, back }: Props) {
   const nav = useNavigate();
   return (
-    <div className="sticky top-0 z-20 bg-gradient-to-r from-brand to-brand-dark text-white rounded-b-3xl shadow-md shadow-brand/30 px-4 py-4 flex items-center gap-3">
+    <div className="sticky top-0 z-20 bg-[#F97316] text-white rounded-b-2xl shadow-sm px-4 py-4 flex items-center gap-3">
       {back && (
         <button
           onClick={() => nav(-1)}
