@@ -100,28 +100,34 @@ export default function HomePage() {
             <div key={section.key} className="mb-6 last:mb-0">
               {section.title && <h2 className="text-xl font-extrabold px-1 mb-4 text-slate-800">{section.title}</h2>}
               <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-2 gap-3">
-                {section.cats.map((c) => (
-                  <motion.button
-                    key={c.id}
-                    variants={card}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => open(c)}
-                    className={`relative ${si === 0 ? "h-[190px]" : "h-[120px]"} rounded-[24px] overflow-hidden text-left p-4 flex flex-col ${PALETTES[si % PALETTES.length]}`}
-                  >
-                    <h3 className={`font-bold text-slate-900 leading-tight z-10 pr-2 ${si === 0 ? "text-[18px]" : "text-[16px]"}`}>
-                      {loc(c, "name", lang)}
-                    </h3>
-                    {c.image_url ? (
-                      <img
-                        src={c.image_url}
-                        alt=""
-                        className="absolute bottom-0 right-0 h-[85%] w-[90%] object-contain object-right-bottom z-0"
-                      />
-                    ) : (
-                      <ChevronRight size={18} className="absolute bottom-4 right-4 text-slate-500/50" />
-                    )}
-                  </motion.button>
-                ))}
+                {section.cats.map((c, ci) => {
+                  const isOdd = section.cats.length % 2 !== 0;
+                  const isLast = ci === section.cats.length - 1;
+                  const isWide = isOdd && isLast;
+
+                  return (
+                    <motion.button
+                      key={c.id}
+                      variants={card}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => open(c)}
+                      className={`relative h-[160px] rounded-[24px] overflow-hidden text-left p-4 flex flex-col ${isWide ? 'col-span-2' : 'col-span-1'} ${PALETTES[si % PALETTES.length]}`}
+                    >
+                      <h3 className={`font-bold text-slate-900 leading-tight z-10 ${isWide ? 'text-[20px] w-1/2' : 'text-[16px] pr-2'}`}>
+                        {loc(c, "name", lang)}
+                      </h3>
+                      {c.image_url ? (
+                        <img
+                          src={c.image_url}
+                          alt=""
+                          className="absolute -bottom-2 -right-2 w-[100%] h-[100%] object-contain object-right-bottom z-0"
+                        />
+                      ) : (
+                        <ChevronRight size={18} className="absolute bottom-4 right-4 text-slate-500/50" />
+                      )}
+                    </motion.button>
+                  );
+                })}
               </motion.div>
             </div>
           ))
