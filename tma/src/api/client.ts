@@ -2,11 +2,41 @@ import type { Address, Order, Restaurant, RestaurantDetail, User } from "./types
 
 const BASE = import.meta.env.VITE_API_URL ?? "https://allfoodapi.webportfolio.uz/api";
 
+// Foydalanuvchi do'kon yetkazish hududidan tashqarida — HomePage buni alohida ko'rsatadi.
+export class OutOfRangeError extends Error {}
+
 let token: string | null = localStorage.getItem("af_token");
 
 export function setToken(t: string) {
   token = t;
   localStorage.setItem("af_token", t);
+}
+
+// Qurilma joylashuvi — sessiya davomida bir marta so'raladi va keshlanadi,
+// har sahifada qayta ruxsat so'ralmasligi uchun. Doim yangi qiymat (localStorage'da
+// saqlanmaydi) — foydalanuvchi boshqa hududdan buyurtma bersa, eskirgan joylashuv
+// bilan noto'g'ri do'kon tanlanmasligi kerak.
+let coordsCache: { lat: number; lng: number } | null | undefined;
+
+function getCoords(): Promise<{ lat: number; lng: number } | null> {
+  if (coordsCache !== undefined) return Promise.resolve(coordsCache);
+  if (!navigator.geolocation) {
+    coordsCache = null;
+    return Promise.resolve(null);
+  }
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        coordsCache = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        resolve(coordsCache);
+      },
+      () => {
+        coordsCache = null;
+        resolve(null);
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+  });
 }
 
 async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
@@ -38,8 +68,17 @@ export const api = {
     req<Restaurant[]>(`/restaurants${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   restaurant: (id: number) => req<RestaurantDetail>(`/restaurants/${id}`),
 
-  // bitta do'kon (single store) — admin default_store bilan bir xil do'kon
+  // faol do'kon — mijoz joylashuviga eng yaqinini tanlaydi, bo'lmasa standart do'kon
   store: async (): Promise<RestaurantDetail | null> => {
+    const coords = await getCoords();
+    if (coords) {
+      try {
+        return await req<RestaurantDetail>(`/restaurants/nearest?lat=${coords.lat}&lng=${coords.lng}`);
+      } catch (e) {
+        // Hech bir do'kon bu hududni yetkazib bermaydi — standartga qaytmasdan xabar beramiz.
+        if (e instanceof Error && e.message.includes("OUT_OF_RANGE")) throw new OutOfRangeError();
+      }
+    }
     try {
       return await req<RestaurantDetail>("/restaurants/default");
     } catch {

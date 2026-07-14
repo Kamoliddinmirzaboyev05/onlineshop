@@ -30,8 +30,9 @@ export default function OrderDetailPage() {
   const [showReceipt, setShowReceipt] = useState(false);
 
   useEffect(() => {
-    api.store().then(setStore).catch(() => {});
-  }, []);
+    if (!order) return;
+    api.restaurant(order.restaurant_id).then(setStore).catch(() => {});
+  }, [order?.restaurant_id]);
 
   useEffect(() => {
     if (!id) return;

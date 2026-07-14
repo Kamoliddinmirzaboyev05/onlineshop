@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { ChevronRight, Search, ShoppingBag } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../api/client";
+import { api, OutOfRangeError } from "../api/client";
 import type { Category, RestaurantDetail } from "../api/types";
 import CartPill from "../components/CartPill";
 import { StoreListSkeleton } from "../components/Skeleton";
@@ -36,19 +36,22 @@ export default function HomePage() {
   const [store, setStore] = useState<RestaurantDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [outOfRange, setOutOfRange] = useState(false);
   const cart = useCart();
 
   const load = () => {
     setLoading(true);
     setError(false);
+    setOutOfRange(false);
     api
       .store()
       .then((s) => {
         setStore(s);
         setLoading(false);
       })
-      .catch(() => {
-        setError(true);
+      .catch((e) => {
+        if (e instanceof OutOfRangeError) setOutOfRange(true);
+        else setError(true);
         setLoading(false);
       });
   };
@@ -102,7 +105,9 @@ export default function HomePage() {
 
       {/* ── Category cards ─────────────────────────────────────── */}
       <div className="px-3 pb-4 pt-1">
-        {error ? (
+        {outOfRange ? (
+          <p className="text-center text-tg-hint py-16 px-4">{t.out_of_range}</p>
+        ) : error ? (
           <ErrorState onRetry={load} />
         ) : loading ? (
           <StoreListSkeleton />
