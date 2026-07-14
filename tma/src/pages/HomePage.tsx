@@ -106,16 +106,16 @@ export default function HomePage() {
                     variants={card}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => open(c)}
-                    className={`relative h-[180px] rounded-[24px] overflow-hidden text-left p-4 flex flex-col ${PALETTES[si % PALETTES.length]}`}
+                    className={`relative ${si === 0 ? "h-[190px]" : "h-[120px]"} rounded-[24px] overflow-hidden text-left p-4 flex flex-col ${PALETTES[si % PALETTES.length]}`}
                   >
-                    <h3 className="font-bold text-slate-900 text-[17px] leading-tight z-10 pr-2">
+                    <h3 className={`font-bold text-slate-900 leading-tight z-10 pr-2 ${si === 0 ? "text-[18px]" : "text-[16px]"}`}>
                       {loc(c, "name", lang)}
                     </h3>
                     {c.image_url ? (
                       <img
                         src={c.image_url}
                         alt=""
-                        className="absolute bottom-0 right-0 h-[85%] w-[90%] object-contain z-0"
+                        className="absolute bottom-0 right-0 h-[85%] w-[90%] object-contain object-right-bottom z-0"
                       />
                     ) : (
                       <ChevronRight size={18} className="absolute bottom-4 right-4 text-slate-500/50" />
