@@ -111,7 +111,7 @@ export default function CategoryPage() {
                       ) : (
                         "🛒"
                       )}
-                      <div className="absolute -bottom-4 left-1/2 -translate-x-1/2">
+                      <div className="absolute -bottom-5 left-1/2 -translate-x-1/2">
                         <AnimatePresence mode="wait" initial={false}>
                           {qtyOf(p) === 0 ? (
                             <motion.button
@@ -121,9 +121,9 @@ export default function CategoryPage() {
                               exit={{ scale: 0.6, opacity: 0 }}
                               whileTap={{ scale: 0.85 }}
                               onClick={() => add(p)}
-                              className="h-9 w-9 rounded-full bg-brand text-white flex items-center justify-center shadow-md shadow-black/20"
+                              className="h-11 w-11 rounded-full bg-brand text-white flex items-center justify-center shadow-md shadow-brand/30"
                             >
-                              <Plus size={18} />
+                              <Plus size={24} />
                             </motion.button>
                           ) : (
                             <motion.div
@@ -131,22 +131,22 @@ export default function CategoryPage() {
                               initial={{ scale: 0.6, opacity: 0 }}
                               animate={{ scale: 1, opacity: 1 }}
                               exit={{ scale: 0.6, opacity: 0 }}
-                              className="flex items-center gap-1.5 shrink-0 rounded-full bg-tg-bg shadow-md shadow-black/15 px-1 py-1 whitespace-nowrap"
+                              className="flex items-center gap-2 shrink-0 rounded-full bg-white shadow-md shadow-black/10 p-1 whitespace-nowrap"
                             >
                               <button
                                 onClick={() => dec(p)}
-                                className="h-7 w-7 rounded-full text-tg-text flex items-center justify-center active:scale-90 transition"
+                                className="h-9 w-9 rounded-full text-slate-800 flex items-center justify-center active:scale-90 transition"
                               >
-                                <Minus size={14} />
+                                <Minus size={20} />
                               </button>
-                              <span className="min-w-[2.5rem] text-center text-xs font-bold">
+                              <span className="min-w-[3rem] text-center text-[15px] font-extrabold text-slate-900">
                                 {qtyOf(p)} {p.unit ? unitLabel(p.unit, lang) : ""}
                               </span>
                               <button
                                 onClick={() => add(p)}
-                                className="h-7 w-7 rounded-full bg-brand text-white flex items-center justify-center active:scale-90 transition"
+                                className="h-9 w-9 rounded-full bg-brand text-white flex items-center justify-center active:scale-90 transition shadow-sm"
                               >
-                                <Plus size={14} />
+                                <Plus size={20} />
                               </button>
                             </motion.div>
                           )}
