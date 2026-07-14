@@ -87,52 +87,54 @@ export default function CheckoutPage() {
     <div className="min-h-full bg-tg-bg pb-8">
       <PageHeader title={t.checkout} back />
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-5 bg-white">
         <button
           onClick={() => setPickerOpen(true)}
-          className="w-full flex items-center gap-3 card p-3.5 text-left"
+          className="w-full flex items-center gap-4 bg-[#F4F5F7] rounded-[20px] p-3 text-left active:scale-[0.98] transition"
         >
-          <span className="h-10 w-10 shrink-0 rounded-xl bg-brand-light flex items-center justify-center text-brand">
-            <MapPin size={18} />
-          </span>
+          <div className="h-[50px] w-[50px] shrink-0 rounded-[16px] bg-[#FFF0E5] flex items-center justify-center text-[#FF6B00]">
+            <MapPin size={24} fill="currentColor" strokeWidth={1.5} />
+          </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">{lang === "uz" ? "Yetkazib berish manzili" : "Адрес доставки"}</p>
-            <p className="text-xs text-tg-hint truncate mt-0.5">
+            <p className="text-[15px] font-bold text-slate-900 leading-tight mb-1">
+              {lang === "uz" ? "Yetkazib berish manzili" : "Адрес доставки"}
+            </p>
+            <p className="text-[13px] text-slate-400 truncate">
               {address || (lang === "uz" ? "Manzilni belgilash uchun bosing" : "Нажмите, чтобы указать адрес")}
             </p>
           </div>
-          <ChevronRight size={18} className="text-tg-hint shrink-0" />
+          <ChevronRight size={20} className="text-slate-400 shrink-0 mr-1" />
         </button>
 
-        <div>
-          <label className="text-sm text-tg-hint">{t.phone}</label>
+        <div className="space-y-2">
+          <label className="text-[13px] text-slate-400 font-medium px-1">{t.phone}</label>
           <input
             value={phone}
             onChange={(e) => setPhone(formatUzPhone(e.target.value))}
             inputMode="tel"
             placeholder="+998 88 888 88 88"
-            className="w-full rounded-xl bg-tg-card px-4 py-3 outline-none mt-1"
+            className="w-full rounded-[16px] bg-[#F4F5F7] text-[16px] text-slate-900 font-medium px-4 py-4 outline-none"
           />
         </div>
 
-        <div>
-          <label className="text-sm text-tg-hint">{t.comment}</label>
+        <div className="space-y-2">
+          <label className="text-[13px] text-slate-400 font-medium px-1">{t.comment}</label>
           <input
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            className="w-full rounded-xl bg-tg-card px-4 py-3 outline-none mt-1"
+            className="w-full rounded-[16px] bg-[#F4F5F7] text-[16px] text-slate-900 font-medium px-4 py-4 outline-none"
           />
         </div>
 
-        <div className="flex justify-between font-bold text-lg">
-          <span>{t.total}</span>
+        <div className="flex justify-between items-center font-extrabold text-[20px] text-slate-900 mt-8 mb-4 px-1">
+          <span>{lang === "uz" ? "Jami" : "Итого"}</span>
           <span>{money(cart.total())} {t.sum}</span>
         </div>
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && <p className="text-rose-500 text-sm font-medium px-1 mb-2">{error}</p>}
 
-        <button onClick={submit} disabled={submitting} className="btn-brand w-full disabled:opacity-60">
-          {submitting ? "…" : t.place_order}
+        <button onClick={submit} disabled={submitting} className="w-full bg-[#FF6B00] text-white font-bold text-[17px] py-4 rounded-[16px] active:scale-[0.98] transition disabled:opacity-60 shadow-[0_4px_12px_rgba(255,107,0,0.3)]">
+          {submitting ? "…" : (lang === "uz" ? "Buyurtma berish" : "Заказать")}
         </button>
       </div>
 
