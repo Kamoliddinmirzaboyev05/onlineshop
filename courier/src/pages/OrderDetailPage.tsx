@@ -295,7 +295,6 @@ export default function OrderDetailPage() {
         >
           Orqaga
         </motion.button>
-        </motion.button>
       </div>
 
       {/* Edit Quantity Modal */}
