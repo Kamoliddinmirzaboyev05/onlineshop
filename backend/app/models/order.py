@@ -45,20 +45,6 @@ class DeliveryZone(Base):
     radius_km: Mapped[float | None] = mapped_column(Float)
 
 
-class Courier(Base):
-    __tablename__ = "couriers"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    restaurant_id: Mapped[int] = mapped_column(
-        ForeignKey("restaurants.id", ondelete="CASCADE"), index=True
-    )
-    telegram_id: Mapped[int | None] = mapped_column(BigInteger, unique=True, index=True)
-    name: Mapped[str] = mapped_column(String(128))
-    phone: Mapped[str | None] = mapped_column(String(32))
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    is_busy: Mapped[bool] = mapped_column(Boolean, default=False)
-
-    orders = relationship("Order", back_populates="courier")
 
 
 class Order(Base):
@@ -68,7 +54,6 @@ class Order(Base):
     number: Mapped[str] = mapped_column(String(16), unique=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     restaurant_id: Mapped[int] = mapped_column(ForeignKey("restaurants.id"), index=True)
-    courier_id: Mapped[int | None] = mapped_column(ForeignKey("couriers.id"))
     # Web kuryer akkaunti (AdminUser, role=courier) — admin biriktiradi.
     assigned_courier_id: Mapped[int | None] = mapped_column(
         ForeignKey("admin_users.id"), index=True
@@ -105,7 +90,6 @@ class Order(Base):
 
     user = relationship("User", back_populates="orders")
     restaurant = relationship("Restaurant")
-    courier = relationship("Courier", back_populates="orders")
     assigned_courier = relationship("AdminUser")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
 

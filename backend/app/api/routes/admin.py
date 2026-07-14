@@ -651,65 +651,7 @@ def delete_supply(
     db.commit()
 
 
-# ── Courier management ───────────────────────────────────────────
-from app.models.order import Courier  # noqa: E402 — avoid circular at top
-from app.schemas.admin import CourierIn, CourierOut  # noqa: E402
 
-
-@router.get("/couriers", response_model=list[CourierOut])
-def list_couriers(
-    _: AdminUser = Depends(require_staff),
-    store: Restaurant = Depends(current_restaurant),
-    db: Session = Depends(get_db),
-):
-    return db.scalars(
-        select(Courier).where(Courier.restaurant_id == store.id).order_by(Courier.id)
-    ).all()
-
-
-@router.post("/couriers", response_model=CourierOut, status_code=201)
-def create_courier(
-    data: CourierIn,
-    _: AdminUser = Depends(require_staff),
-    store: Restaurant = Depends(current_restaurant),
-    db: Session = Depends(get_db),
-):
-    c = Courier(**data.model_dump(), restaurant_id=store.id)
-    db.add(c)
-    db.commit()
-    db.refresh(c)
-    return c
-
-
-@router.put("/couriers/{cid}", response_model=CourierOut)
-def update_courier(
-    cid: int,
-    data: CourierIn,
-    _: AdminUser = Depends(require_staff),
-    store: Restaurant = Depends(current_restaurant),
-    db: Session = Depends(get_db),
-):
-    c = db.get(Courier, cid)
-    if not c or c.restaurant_id != store.id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Courier not found")
-    for k, v in data.model_dump().items():
-        setattr(c, k, v)
-    db.commit()
-    db.refresh(c)
-    return c
-
-
-@router.delete("/couriers/{cid}", status_code=204)
-def delete_courier(
-    cid: int,
-    _: AdminUser = Depends(require_staff),
-    store: Restaurant = Depends(current_restaurant),
-    db: Session = Depends(get_db),
-):
-    c = db.get(Courier, cid)
-    if c and c.restaurant_id == store.id:
-        db.delete(c)
-        db.commit()
 
 
 # ── Admin users (kuryer akkauntlarini boshqarish) ───────────────

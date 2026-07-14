@@ -5,21 +5,6 @@ from pydantic import BaseModel
 from app.models.enums import AdminRole, AnnouncementStatus
 
 
-class CourierIn(BaseModel):
-    name: str
-    phone: str | None = None
-    telegram_id: int | None = None
-    is_active: bool = True
-
-
-class CourierOut(CourierIn):
-    id: int
-    is_busy: bool
-
-    class Config:
-        from_attributes = True
-
-
 class DeliveryZoneIn(BaseModel):
     name: str = "Yetkazish hududi"
     fee: int = 0
