@@ -79,23 +79,23 @@ export default function CartPage() {
         ))}
       </div>
 
-      <div className="fixed bottom-16 inset-x-0 bg-tg-bg border-t border-black/5 px-4 py-3 flex items-center justify-between gap-3 rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+      <div className="fixed bottom-16 inset-x-0 bg-tg-bg border-t border-black/5 px-4 py-3 flex items-center justify-between gap-2 rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.06)] z-20">
         <button
           onClick={() => {
             cart.clear();
             haptic("light");
           }}
-          className="text-sm font-medium text-rose-500 shrink-0"
+          className="text-[15px] font-bold text-rose-500 shrink-0"
         >
           {t.clear_cart}
         </button>
-        <div className="text-right">
-          <p className="text-xs text-tg-hint leading-none mb-1">{t.products_n}</p>
-          <p className="font-bold text-lg leading-none">{money(cart.total())} {t.sum}</p>
+        <div className="flex-1 text-center flex flex-col items-center justify-center min-w-0">
+          <p className="text-[12px] text-slate-500 font-medium leading-none mb-1">{t.products_n}</p>
+          <p className="font-extrabold text-[16px] leading-none whitespace-nowrap text-slate-900">{money(cart.total())} {t.sum}</p>
         </div>
         <button
           onClick={() => nav("/checkout")}
-          className="shrink-0 flex items-center gap-2 bg-slate-900 text-white font-semibold rounded-full pl-5 pr-4 py-3 active:scale-95 transition"
+          className="shrink-0 flex items-center gap-1.5 bg-slate-900 text-white font-semibold rounded-full pl-5 pr-4 py-3 active:scale-95 transition"
         >
           {t.place_order}
           <span aria-hidden>→</span>
