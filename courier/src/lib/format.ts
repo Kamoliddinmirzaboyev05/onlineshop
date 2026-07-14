@@ -50,10 +50,10 @@ export const PAYMENT_LABEL: Record<string, string> = {
 export const paymentLabel = (m?: PaymentMethod) =>
   m ? PAYMENT_LABEL[m] ?? m : "—";
 
-/** Yandex Maps navigatsiya havolasi (lat/lng bo'lsa). */
+/** Google Maps navigatsiya havolasi (lat/lng bo'lsa). */
 export const mapsUrl = (lat?: number | null, lng?: number | null) =>
   lat != null && lng != null
-    ? `https://yandex.com/maps/?rtext=~${lat},${lng}&rtt=auto`
+    ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
     : null;
 
 /** Miqdor + o'lchov birligi: "1 kg", "3 dona". */

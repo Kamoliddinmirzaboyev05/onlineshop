@@ -42,11 +42,14 @@ export default function DashboardPage() {
     { pollMs: POLL_INTERVAL_MS }
   );
 
+  const myActiveOrders = (activeOrders ?? [])
+    .filter((o) => o.assigned_courier_id != null)
+    .sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at));
+
   const availableOrders = (activeOrders ?? [])
     .filter((o) => o.assigned_courier_id == null && isAcceptableOrderStatus(o.status))
     .sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at));
   const previewOrders = availableOrders.slice(0, 3);
-  const maxEarn = Math.max(1, ...(stats?.series.map((d) => d.earnings) ?? [1]));
 
   useEffect(() => {
     setAvailableCount(availableOrders.length);
@@ -97,7 +100,7 @@ export default function DashboardPage() {
             <div className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</div>
           )}
 
-          {/* Yangi (hali hech kimga biriktirilmagan) buyurtmalar — darhol ko'zga tashlansin */}
+          {/* Yangi (hali hech kimga biriktirilmagan) buyurtmalar */}
           {availableCount > 0 && (
             <motion.div variants={listItem} className="space-y-2.5">
               <button
@@ -125,8 +128,8 @@ export default function DashboardPage() {
                   <div className="flex justify-between items-start gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold">№ {o.number}</span>
-                        <span className={`pill ${statusPill(o.status)}`}>{statusLabel(o.status)}</span>
+                         <span className="font-bold">№ {o.number}</span>
+                         <span className={`pill ${statusPill(o.status)}`}>{statusLabel(o.status)}</span>
                       </div>
                       <div className="mt-1 flex items-start gap-1.5 text-sm text-slate-500">
                         <MapPin size={14} className="shrink-0 mt-0.5" />
@@ -137,7 +140,6 @@ export default function DashboardPage() {
                         {formatDateTime(o.created_at)}
                       </div>
                     </div>
-                    <span className="font-bold text-brand shrink-0">{money(o.total)} so'm</span>
                   </div>
                   <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
                     <button
@@ -159,88 +161,67 @@ export default function DashboardPage() {
             </motion.div>
           )}
 
-          {/* Faol buyurtmalar */}
-          <motion.button
-            variants={listItem}
-            whileTap={tap}
-            onClick={() => nav("/orders")}
-            className="w-full card p-4 flex items-center justify-between text-left"
-          >
-            <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-xl bg-brand/10 flex items-center justify-center">
-                <Bike size={22} className="text-brand" />
+          {/* Faol buyurtmalarim */}
+          {myActiveOrders.length > 0 && (
+            <motion.div variants={listItem}>
+              <div className="flex items-center gap-2 mb-3 mt-1">
+                <Bike size={18} className="text-brand" />
+                <h2 className="font-bold text-lg">Mening faol buyurtmalarim</h2>
               </div>
-              <div>
-                <div className="text-sm text-slate-500">Faol buyurtmalar</div>
-                <div className="text-2xl font-bold">{stats?.active ?? 0}</div>
+              <div className="space-y-3">
+                {myActiveOrders.map((o) => (
+                  <motion.div
+                    key={o.id}
+                    layout
+                    className="card p-4 border-2 border-slate-200 bg-white"
+                  >
+                    <div className="flex justify-between items-start gap-3 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-lg">№ {o.number}</span>
+                        <span className={`pill ${statusPill(o.status)}`}>{statusLabel(o.status)}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-1.5 text-sm text-slate-600 mb-3">
+                      <MapPin size={15} className="shrink-0 mt-0.5 text-slate-400" />
+                      <span className="line-clamp-2">{o.address_line}</span>
+                    </div>
+                    <button
+                      onClick={() => nav(`/orders/${o.id}`)}
+                      className="w-full btn justify-center py-2.5 text-sm"
+                    >
+                      Batafsil va boshqarish →
+                    </button>
+                  </motion.div>
+                ))}
               </div>
-            </div>
-            <span className="text-brand text-sm font-semibold">Ko'rish →</span>
-          </motion.button>
+            </motion.div>
+          )}
 
-          {/* Bugun */}
+          {/* Bugun (Faqat yetkazilganlar va bekor qilinganlar) */}
           <motion.div variants={listItem}>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
-              Bugun
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 mt-2">
+              Bugungi statistika
             </p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <StatCard
                 icon={<CheckCircle2 size={18} className="text-emerald-600" />}
                 value={stats?.today.delivered ?? 0}
                 label="Yetkazildi"
               />
               <StatCard
-                icon={<Wallet size={18} className="text-brand" />}
-                value={money(stats?.today.earnings ?? 0)}
-                label="Daromad"
-              />
-              <StatCard
                 icon={<XCircle size={18} className="text-rose-500" />}
                 value={stats?.today.cancelled ?? 0}
-                label="Bekor"
+                label="Bekor qilindi"
               />
             </div>
           </motion.div>
 
-          {/* Hafta / Oy */}
-          <motion.div variants={listItem} className="grid grid-cols-2 gap-3">
-            <PeriodCard title="Bu hafta" delivered={stats?.week.delivered ?? 0} earnings={stats?.week.earnings ?? 0} />
-            <PeriodCard title="Bu oy" delivered={stats?.month.delivered ?? 0} earnings={stats?.month.earnings ?? 0} />
-          </motion.div>
-
-          {/* 7 kunlik grafik */}
-          <motion.div variants={listItem} className="card p-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
-              So'nggi 7 kun
-            </p>
-            <div className="flex items-end justify-between gap-1.5 h-28">
-              {(stats?.series ?? []).map((d, i) => (
-                <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
-                  <div className="w-full flex items-end h-20">
-                    <motion.div
-                      className="w-full rounded-t-md bg-brand/80 origin-bottom"
-                      initial={{ scaleY: 0 }}
-                      animate={{ scaleY: 1 }}
-                      transition={{ delay: 0.1 + i * 0.04, type: "spring", stiffness: 200, damping: 22 }}
-                      style={{
-                        height: `${(d.earnings / maxEarn) * 100}%`,
-                        minHeight: d.earnings ? 4 : 0,
-                      }}
-                      title={`${money(d.earnings)} so'm`}
-                    />
-                  </div>
-                  <span className="text-[10px] text-slate-400">{formatDay(d.date)}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* So'nggi buyurtmalar */}
+          {/* So'nggi buyurtmalar (History) */}
           {recent && recent.length > 0 && (
-            <motion.div variants={listItem}>
+            <motion.div variants={listItem} className="pt-2">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-                  So'nggi buyurtmalar
+                  Tarix (So'nggi 3 ta)
                 </p>
                 <button onClick={() => nav("/history")} className="text-xs font-semibold text-brand">
                   Barchasi →
@@ -259,7 +240,6 @@ export default function DashboardPage() {
                         <span className="font-bold text-sm">№ {o.number}</span>
                         <span className={`pill ${statusPill(o.status)}`}>{statusLabel(o.status)}</span>
                       </div>
-                      <span className="font-bold text-brand text-sm">{money(o.total)} so'm</span>
                     </div>
                     <div className="flex items-start gap-1.5 text-xs text-slate-500 mb-1">
                       <MapPin size={12} className="shrink-0 mt-0.5 text-slate-400" />
@@ -286,16 +266,6 @@ function StatCard({ icon, value, label }: { icon: React.ReactNode; value: React.
       {icon}
       <div className="text-lg font-bold leading-tight">{value}</div>
       <div className="text-[11px] text-slate-400">{label}</div>
-    </div>
-  );
-}
-
-function PeriodCard({ title, delivered, earnings }: { title: string; delivered: number; earnings: number }) {
-  return (
-    <div className="card p-4">
-      <div className="text-sm text-slate-500 mb-1">{title}</div>
-      <div className="text-xl font-bold text-brand">{money(earnings)} so'm</div>
-      <div className="text-xs text-slate-400 mt-0.5">{delivered} ta yetkazildi</div>
     </div>
   );
 }
