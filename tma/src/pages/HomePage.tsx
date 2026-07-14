@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ChevronRight, Search } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, OutOfRangeError } from "../api/client";
@@ -59,8 +59,6 @@ export default function HomePage() {
     load();
   }, []);
 
-  const productCount = (c: Category) =>
-    c.subcategories.reduce((sum, sc) => sum + sc.products.length, 0);
 
   const open = (c: Category) => {
     haptic("light");

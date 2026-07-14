@@ -3,8 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useI18n } from "../i18n";
 
-const base =
-  "flex flex-col items-center justify-center gap-1 flex-1 py-2 text-[11px] font-medium transition";
+
 
 export default function BottomNav() {
   const { t } = useI18n();
