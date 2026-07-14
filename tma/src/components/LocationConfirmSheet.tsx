@@ -83,25 +83,25 @@ export default function LocationConfirmSheet({ initial, lang, onConfirm, onClose
       </MapContainer>
 
       {/* Markazda qotib turuvchi pin — xarita uning ostida suriladi */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center -translate-y-4">
-        <MapPin size={40} className="text-brand drop-shadow-lg" fill="currentColor" fillOpacity={0.15} />
+      <div className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center -translate-y-4">
+        <MapPin size={46} className="text-[#FF6B00] drop-shadow-md" fill="currentColor" />
       </div>
 
       <button
         onClick={onClose}
-        className="absolute top-4 left-4 h-10 w-10 rounded-full bg-white shadow-md flex items-center justify-center active:scale-90 transition"
+        className="absolute top-4 left-4 z-[1000] h-11 w-11 rounded-full bg-white shadow-md flex items-center justify-center active:scale-90 transition text-slate-700"
       >
-        <X size={20} />
+        <X size={24} />
       </button>
 
       <button
         onClick={locate}
-        className="absolute top-4 right-4 h-10 w-10 rounded-full bg-brand text-white shadow-md flex items-center justify-center active:scale-90 transition"
+        className="absolute top-4 right-4 z-[1000] h-11 w-11 rounded-full bg-white text-slate-700 shadow-md flex items-center justify-center active:scale-90 transition"
       >
-        <LocateFixed size={18} />
+        <LocateFixed size={22} />
       </button>
 
-      <div className="absolute bottom-0 inset-x-0 bg-white rounded-t-[32px] shadow-[0_-4px_24px_rgba(0,0,0,0.08)] p-5 pb-8 flex flex-col gap-6 z-20">
+      <div className="absolute bottom-0 inset-x-0 z-[1000] bg-white rounded-t-[32px] shadow-[0_-4px_24px_rgba(0,0,0,0.08)] p-5 pb-8 flex flex-col gap-6">
         <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto -mt-2" />
         
         <div className="flex items-center gap-4">
