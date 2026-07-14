@@ -62,6 +62,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ init_data }),
     }),
+  updateMe: (data: Partial<Pick<User, "first_name" | "phone">>) =>
+    req<User>("/auth/me", { method: "PATCH", body: JSON.stringify(data) }),
 
   // catalog
   restaurants: (q?: string) =>

@@ -104,23 +104,14 @@ export default function CategoryPage() {
                 className="grid grid-cols-2 gap-3"
               >
                 {sc.products.map((p) => (
-                  <motion.div key={p.id} variants={item} className="card flex flex-col">
-                    <div className="h-28 bg-brand-light flex items-center justify-center text-3xl">
+                  <motion.div key={p.id} variants={item} className="card border border-black/5">
+                    <div className="relative h-28 bg-tg-card flex items-center justify-center text-3xl">
                       {p.image_url ? (
                         <img src={p.image_url} alt="" className="h-full w-full object-cover" />
                       ) : (
                         "🛒"
                       )}
-                    </div>
-                    <div className="p-3 flex flex-col flex-1">
-                      <h3 className="font-medium text-sm leading-tight line-clamp-2">
-                        {loc(p, "name", lang)}
-                      </h3>
-                      <div className="mt-auto pt-2 flex items-center justify-between gap-2">
-                        <span className="font-semibold text-sm">
-                          {money(p.price)} {t.sum}
-                          {p.unit ? <span className="text-tg-hint font-normal">/{unitLabel(p.unit, lang)}</span> : null}
-                        </span>
+                      <div className="absolute -bottom-4 left-1/2 -translate-x-1/2">
                         <AnimatePresence mode="wait" initial={false}>
                           {qtyOf(p) === 0 ? (
                             <motion.button
@@ -130,7 +121,7 @@ export default function CategoryPage() {
                               exit={{ scale: 0.6, opacity: 0 }}
                               whileTap={{ scale: 0.85 }}
                               onClick={() => add(p)}
-                              className="h-8 w-8 shrink-0 rounded-full bg-brand text-white flex items-center justify-center shadow-sm"
+                              className="h-9 w-9 rounded-full bg-brand text-white flex items-center justify-center shadow-md shadow-black/20"
                             >
                               <Plus size={18} />
                             </motion.button>
@@ -140,27 +131,36 @@ export default function CategoryPage() {
                               initial={{ scale: 0.6, opacity: 0 }}
                               animate={{ scale: 1, opacity: 1 }}
                               exit={{ scale: 0.6, opacity: 0 }}
-                              className="flex items-center gap-1 shrink-0 rounded-full bg-brand-light"
+                              className="flex items-center gap-1.5 shrink-0 rounded-full bg-tg-bg shadow-md shadow-black/15 px-1 py-1 whitespace-nowrap"
                             >
                               <button
                                 onClick={() => dec(p)}
-                                className="h-8 w-8 rounded-full text-brand flex items-center justify-center active:scale-90 transition"
+                                className="h-7 w-7 rounded-full text-tg-text flex items-center justify-center active:scale-90 transition"
                               >
-                                <Minus size={16} />
+                                <Minus size={14} />
                               </button>
-                              <span className="min-w-[1.25rem] text-center text-sm font-bold text-brand">
-                                {qtyOf(p)}
+                              <span className="min-w-[2.5rem] text-center text-xs font-bold">
+                                {qtyOf(p)} {p.unit ? unitLabel(p.unit, lang) : ""}
                               </span>
                               <button
                                 onClick={() => add(p)}
-                                className="h-8 w-8 rounded-full bg-brand text-white flex items-center justify-center active:scale-90 transition shadow-sm"
+                                className="h-7 w-7 rounded-full bg-brand text-white flex items-center justify-center active:scale-90 transition"
                               >
-                                <Plus size={16} />
+                                <Plus size={14} />
                               </button>
                             </motion.div>
                           )}
                         </AnimatePresence>
                       </div>
+                    </div>
+                    <div className="px-3 pt-6 pb-3">
+                      <span className="font-bold text-sm">
+                        {money(p.price)} {t.sum}
+                      </span>
+                      <h3 className="text-sm leading-tight line-clamp-1 mt-0.5">
+                        {loc(p, "name", lang)}
+                      </h3>
+                      {p.unit && <p className="text-xs text-tg-hint mt-0.5">1{unitLabel(p.unit, lang)}</p>}
                     </div>
                   </motion.div>
                 ))}

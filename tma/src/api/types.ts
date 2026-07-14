@@ -23,11 +23,20 @@ export interface Subcategory {
 
 export interface Category {
   id: number;
+  group_id?: number | null;
   name_uz: string;
   name_ru: string;
   image_url?: string | null;
   sort_order: number;
   subcategories: Subcategory[];
+}
+
+// Title — bosh sahifada bir nechta kategoriyani sarlavha ostida guruhlaydi.
+export interface CategoryGroup {
+  id: number;
+  name_uz: string;
+  name_ru: string;
+  sort_order: number;
 }
 
 export interface Restaurant {
@@ -51,6 +60,7 @@ export interface Restaurant {
 
 export interface RestaurantDetail extends Restaurant {
   categories: Category[];
+  category_groups: CategoryGroup[];
 }
 
 export interface Address {
@@ -110,4 +120,5 @@ export interface User {
   first_name?: string | null;
   phone?: string | null;
   language: string;
+  created_at: string;
 }

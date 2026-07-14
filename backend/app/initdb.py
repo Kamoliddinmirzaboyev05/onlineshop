@@ -22,9 +22,12 @@ _PRODUCT_COLUMNS = (
 )
 
 # Kategoriyalarga rasm (kartochka foni) + subkategoriya uchun parent_id — idempotent.
+# group_id — Title (category_groups) jadvali `create_all` bilan yangi yaratiladi,
+# shuning uchun bu ALTER (keyinroq bajariladi) doim uni topa oladi.
 _CATEGORY_COLUMNS = (
     "ALTER TABLE categories ADD COLUMN IF NOT EXISTS image_url VARCHAR(512)",
     "ALTER TABLE categories ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES categories(id) ON DELETE CASCADE",
+    "ALTER TABLE categories ADD COLUMN IF NOT EXISTS group_id INTEGER REFERENCES category_groups(id) ON DELETE SET NULL",
 )
 
 # order_items.cost — sotuv vaqtidagi tannarx snapshot'i (foyda hisobi uchun).

@@ -39,6 +39,22 @@ class Restaurant(Base):
     products = relationship("Product", back_populates="restaurant", cascade="all, delete-orphan")
 
 
+class CategoryGroup(Base):
+    """Title — bosh sahifada bir nechta (top-level) kategoriyani bitta sarlavha
+    ostida guruhlaydi (masalan "Meva va sabzavotlar" ostida "Mevalar",
+    "Sabzavotlar"). Kategoriya yaratishda ixtiyoriy ravishda tanlanadi."""
+    __tablename__ = "category_groups"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    restaurant_id: Mapped[int] = mapped_column(ForeignKey("restaurants.id", ondelete="CASCADE"), index=True)
+    name_uz: Mapped[str] = mapped_column(String(128))
+    name_ru: Mapped[str] = mapped_column(String(128))
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+    restaurant = relationship("Restaurant")
+    categories = relationship("Category", back_populates="group")
+
+
 class Category(Base):
     __tablename__ = "categories"
 
@@ -46,6 +62,11 @@ class Category(Base):
     restaurant_id: Mapped[int] = mapped_column(ForeignKey("restaurants.id", ondelete="CASCADE"), index=True)
     parent_id: Mapped[int | None] = mapped_column(
         ForeignKey("categories.id", ondelete="CASCADE"), index=True
+    )
+    # Faqat top-level (parent_id=None) kategoriyalarda ishlatiladi — bosh
+    # sahifada Title ostida guruhlash uchun. Ixtiyoriy.
+    group_id: Mapped[int | None] = mapped_column(
+        ForeignKey("category_groups.id", ondelete="SET NULL"), index=True
     )
     name_uz: Mapped[str] = mapped_column(String(128))
     name_ru: Mapped[str] = mapped_column(String(128))
@@ -56,6 +77,7 @@ class Category(Base):
     parent = relationship("Category", remote_side=[id], back_populates="children")
     children = relationship("Category", back_populates="parent", cascade="all, delete-orphan")
     products = relationship("Product", back_populates="category", cascade="all, delete-orphan")
+    group = relationship("CategoryGroup", back_populates="categories")
 
 
 class Product(Base):

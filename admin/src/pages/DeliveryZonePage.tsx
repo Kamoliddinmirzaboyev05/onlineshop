@@ -1,7 +1,7 @@
 import "leaflet/dist/leaflet.css";
-import { MapPin, Save } from "lucide-react";
+import { LocateFixed, MapPin, Save } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Circle, CircleMarker, MapContainer, TileLayer, useMapEvents } from "react-leaflet";
+import { Circle, CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { toast } from "sonner";
 import { get, put } from "../api";
 import type { DeliveryZone } from "../types";
@@ -18,6 +18,17 @@ function ClickToSetCenter({ onPick }: { onPick: (lat: number, lng: number) => vo
   return null;
 }
 
+// "Joylashuvni aniqlash" bosilganda xarita markazga o'zi ko'chib o'tishi uchun —
+// `center` prop faqat MapContainer mount'ida ishlaydi, keyingi o'zgarishda emas.
+function Recenter({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, Math.max(map.getZoom(), 14));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [center[0], center[1]]);
+  return null;
+}
+
 export default function DeliveryZonePage() {
   const [name, setName] = useState("Yetkazish hududi");
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
@@ -28,6 +39,27 @@ export default function DeliveryZonePage() {
   const [hasCenter, setHasCenter] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [locating, setLocating] = useState(false);
+
+  const locate = () => {
+    if (!navigator.geolocation) {
+      toast.error("Brauzeringiz joylashuvni aniqlay olmaydi");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCenter([pos.coords.latitude, pos.coords.longitude]);
+        setHasCenter(true);
+        setLocating(false);
+      },
+      () => {
+        toast.error("Joylashuvni aniqlab bo'lmadi — brauzerda ruxsat berilganini tekshiring");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   useEffect(() => {
     get<DeliveryZone | null>("/admin/delivery-zone")
@@ -90,6 +122,7 @@ export default function DeliveryZonePage() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               <ClickToSetCenter onPick={(lat, lng) => setCenter([lat, lng])} />
+              <Recenter center={center} />
               <Circle
                 center={center}
                 radius={radiusKm * 1000}
@@ -106,6 +139,14 @@ export default function DeliveryZonePage() {
 
         {/* Controls */}
         <div className="card p-5 space-y-4 h-fit">
+          <button
+            onClick={locate}
+            disabled={locating}
+            className="btn-ghost w-full justify-center"
+          >
+            <LocateFixed size={16} /> {locating ? "Aniqlanmoqda…" : "Joylashuvni aniqlash"}
+          </button>
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Nomi</label>
             <input

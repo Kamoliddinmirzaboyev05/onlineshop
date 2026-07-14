@@ -40,16 +40,8 @@ export function initTelegram() {
   if (!tg) return;
   tg.ready();
   tg.expand();
-  applyTheme();
-}
-
-function applyTheme() {
-  const root = document.documentElement;
-  const p = tg?.themeParams ?? {};
-  root.style.setProperty("--tg-bg", p.bg_color ?? "#ffffff");
-  root.style.setProperty("--tg-text", p.text_color ?? "#000000");
-  root.style.setProperty("--tg-hint", p.hint_color ?? "#999999");
-  root.style.setProperty("--tg-card", p.secondary_bg_color ?? "#f4f4f5");
+  // Mavzu (light/dark) endi Telegram klientidan emas — store/theme.ts orqali
+  // ilovaning o'z holatidan boshqariladi (standart: light).
 }
 
 // initData string for backend HMAC auth. Empty in plain browser dev.

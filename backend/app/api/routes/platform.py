@@ -8,12 +8,14 @@ from app.core.db import get_db
 from app.core.security import hash_password
 from app.models import Announcement, Business, Order, OrderItem, Restaurant, User
 from app.schemas.admin import AnnouncementIn, AnnouncementOut
+from app.schemas.catalog import RestaurantOut
 from app.schemas.business import (
     BusinessBreakdown,
     BusinessCreateIn,
     BusinessOut,
     BusinessRow,
     PlatformStatsOut,
+    PlatformStoreRow,
 )
 from app.services.announcements import broadcast
 
@@ -141,6 +143,92 @@ def delete_business(bid: int, db: Session = Depends(get_db)):
             status.HTTP_409_CONFLICT, "Do'koni bor biznesni o'chirib bo'lmaydi"
         )
     db.delete(b)
+    db.commit()
+
+
+# ── Stores (do'konlar) — barcha bizneslar kesimida ───────────────
+@router.get("/stores", response_model=list[PlatformStoreRow])
+def list_stores(db: Session = Depends(get_db)):
+    rows = db.execute(
+        select(Restaurant, Business.name)
+        .join(Business, Business.id == Restaurant.business_id)
+        .order_by(Restaurant.created_at.desc())
+    ).all()
+    return [
+        PlatformStoreRow(
+            **RestaurantOut.model_validate(store).model_dump(),
+            business_id=store.business_id,
+            business_name=business_name,
+            created_at=store.created_at,
+        )
+        for store, business_name in rows
+    ]
+
+
+class StoreBusinessIn(BaseModel):
+    business_id: int
+
+
+@router.patch("/stores/{rid}/business", response_model=PlatformStoreRow)
+def reassign_store(rid: int, data: StoreBusinessIn, db: Session = Depends(get_db)):
+    """Do'konni boshqa tadbirkorga biriktiradi — masalan, multi-tenant
+    o'tishda barcha eski do'konlar bitta placeholder biznesga tushib qolgan
+    holatni to'g'irlash uchun."""
+    store = db.get(Restaurant, rid)
+    if not store:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Store not found")
+    business = db.get(Business, data.business_id)
+    if not business:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Business not found")
+    store.business_id = business.id
+    db.commit()
+    db.refresh(store)
+    return PlatformStoreRow(
+        **RestaurantOut.model_validate(store).model_dump(),
+        business_id=store.business_id,
+        business_name=business.name,
+        created_at=store.created_at,
+    )
+
+
+@router.patch("/stores/{rid}/toggle", response_model=PlatformStoreRow)
+def toggle_store(rid: int, db: Session = Depends(get_db)):
+    """Buyurtma tarixi borligi sababli o'chirib bo'lmaydigan do'kon uchun
+    muqobil: faolsizlantirish — mijozlarga ko'rinmay qoladi, tarix saqlanadi."""
+    store = db.get(Restaurant, rid)
+    if not store:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Store not found")
+    store.is_active = not store.is_active
+    db.commit()
+    db.refresh(store)
+    business = db.get(Business, store.business_id)
+    return PlatformStoreRow(
+        **RestaurantOut.model_validate(store).model_dump(),
+        business_id=store.business_id,
+        business_name=business.name if business else "—",
+        created_at=store.created_at,
+    )
+
+
+@router.delete("/stores/{rid}", status_code=204)
+def delete_store(rid: int, force: bool = False, db: Session = Depends(get_db)):
+    """Buyurtma tarixi bor do'konni oddiy holda o'chirib bo'lmaydi (409).
+
+    `force=true` — tasdiqlangan to'liq o'chirish: buyurtmalari (va ular bilan
+    birga order_items'i) ham qaytarib bo'lmas tarzda o'chadi. Frontend buni
+    faqat ikki bosqichli (nomi + "o'chirish" so'zi) tasdiqdan keyin yuboradi."""
+    store = db.get(Restaurant, rid)
+    if not store:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Store not found")
+    order_ids = db.scalars(select(Order.id).where(Order.restaurant_id == rid)).all()
+    if order_ids and not force:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Buyurtma tarixi bor do'konni o'chirib bo'lmaydi"
+        )
+    if order_ids:
+        db.query(OrderItem).filter(OrderItem.order_id.in_(order_ids)).delete(synchronize_session=False)
+        db.query(Order).filter(Order.id.in_(order_ids)).delete(synchronize_session=False)
+    db.delete(store)
     db.commit()
 
 

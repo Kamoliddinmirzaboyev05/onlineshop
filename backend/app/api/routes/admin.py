@@ -12,8 +12,8 @@ from app.api.deps import (
 from app.core.config import settings
 from app.core.db import get_db
 from app.models import (
-    AdminUser, Business, Category, Order, OrderItem, Product, PushSubscription,
-    Restaurant, SupplyRecord, User,
+    AdminUser, Business, Category, CategoryGroup, Order, OrderItem, Product,
+    PushSubscription, Restaurant, SupplyRecord, User,
 )
 from app.models.enums import OrderStatus
 from app.schemas.admin import (
@@ -22,7 +22,8 @@ from app.schemas.admin import (
 )
 from app.schemas.admin import AdminUserOut
 from app.schemas.catalog import (
-    CategoryIn, CategoryOut, ProductIn, ProductOut, RestaurantOut, StoreSettingsIn,
+    CategoryGroupIn, CategoryGroupOut, CategoryIn, CategoryOut, ProductIn, ProductOut,
+    RestaurantOut, StoreSettingsIn,
 )
 from app.schemas.admin import DeliveryZoneIn, DeliveryZoneOut
 from app.models import DeliveryZone
@@ -287,6 +288,59 @@ def reports(store: Restaurant = Depends(current_restaurant), db: Session = Depen
     )
 
 
+# ── Titles (category_groups) — bosh sahifada kategoriyalarni sarlavha ostida
+# guruhlash uchun. Faqat top-level kategoriya yaratishda tanlanadi.
+@router.get("/restaurants/{rid}/category-groups", response_model=list[CategoryGroupOut])
+def list_category_groups(
+    rid: int, store: Restaurant = Depends(current_restaurant), db: Session = Depends(get_db)
+):
+    if rid != store.id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your store")
+    return db.scalars(
+        select(CategoryGroup).where(CategoryGroup.restaurant_id == rid).order_by(CategoryGroup.sort_order)
+    ).all()
+
+
+@router.post("/category-groups", response_model=CategoryGroupOut, status_code=201)
+def create_category_group(
+    data: CategoryGroupIn,
+    store: Restaurant = Depends(current_restaurant),
+    db: Session = Depends(get_db),
+):
+    g = CategoryGroup(**data.model_dump(), restaurant_id=store.id)
+    db.add(g)
+    db.commit()
+    db.refresh(g)
+    return g
+
+
+@router.put("/category-groups/{gid}", response_model=CategoryGroupOut)
+def update_category_group(
+    gid: int,
+    data: CategoryGroupIn,
+    store: Restaurant = Depends(current_restaurant),
+    db: Session = Depends(get_db),
+):
+    g = db.get(CategoryGroup, gid)
+    if not g or g.restaurant_id != store.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Not found")
+    for k, v in data.model_dump().items():
+        setattr(g, k, v)
+    db.commit()
+    db.refresh(g)
+    return g
+
+
+@router.delete("/category-groups/{gid}", status_code=204)
+def delete_category_group(
+    gid: int, store: Restaurant = Depends(current_restaurant), db: Session = Depends(get_db)
+):
+    g = db.get(CategoryGroup, gid)
+    if g and g.restaurant_id == store.id:
+        db.delete(g)  # categories.group_id SET NULL (ondelete) — kategoriyalar o'chmaydi
+        db.commit()
+
+
 # ── Categories ───────────────────────────────────────────────────
 @router.get("/restaurants/{rid}/categories", response_model=list[CategoryOut])
 def list_categories(
@@ -310,6 +364,14 @@ def _check_parent(db: Session, parent_id: int | None, restaurant_id: int) -> Non
         )
 
 
+def _check_group(db: Session, group_id: int | None, restaurant_id: int) -> None:
+    if group_id is None:
+        return
+    group = db.get(CategoryGroup, group_id)
+    if not group or group.restaurant_id != restaurant_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Title topilmadi")
+
+
 @router.post("/categories", response_model=CategoryOut, status_code=201)
 def create_category(
     data: CategoryIn,
@@ -317,6 +379,7 @@ def create_category(
     db: Session = Depends(get_db),
 ):
     _check_parent(db, data.parent_id, store.id)
+    _check_group(db, data.group_id, store.id)
     c = Category(**data.model_dump(), restaurant_id=store.id)
     db.add(c)
     db.commit()
@@ -335,6 +398,7 @@ def update_category(
     if not c or c.restaurant_id != store.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Not found")
     _check_parent(db, data.parent_id, store.id)
+    _check_group(db, data.group_id, store.id)
     for k, v in data.model_dump().items():
         setattr(c, k, v)
     db.commit()

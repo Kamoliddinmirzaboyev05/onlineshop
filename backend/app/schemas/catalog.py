@@ -24,9 +24,22 @@ class ProductOut(BaseModel):
 class CategoryOut(BaseModel):
     id: int
     parent_id: int | None = None
+    # Faqat top-level kategoriyalarda — qaysi Title (CategoryGroup) ostida ko'rsatilishi.
+    group_id: int | None = None
     name_uz: str
     name_ru: str
     image_url: str | None = None
+    sort_order: int
+
+    class Config:
+        from_attributes = True
+
+
+class CategoryGroupOut(BaseModel):
+    """Title — bosh sahifada bir nechta kategoriyani guruhlaydigan sarlavha."""
+    id: int
+    name_uz: str
+    name_ru: str
     sort_order: int
 
     class Config:
@@ -82,6 +95,9 @@ class StoreSettingsIn(BaseModel):
 
 class RestaurantDetail(RestaurantOut):
     categories: list[CategoryWithSubcategories] = []
+    # Title'lar — mijoz ilovasi shu ro'yxat + har categoriyaning group_id'si orqali
+    # kategoriyalarni sarlavha ostida guruhlaydi (group_id=None — sarlavhasiz).
+    category_groups: list[CategoryGroupOut] = []
 
 
 # ── Admin write schemas ──────────────────────────────────────────
@@ -100,9 +116,16 @@ class RestaurantIn(BaseModel):
 
 class CategoryIn(BaseModel):
     parent_id: int | None = None
+    group_id: int | None = None
     name_uz: str
     name_ru: str
     image_url: str | None = None
+    sort_order: int = 0
+
+
+class CategoryGroupIn(BaseModel):
+    name_uz: str
+    name_ru: str
     sort_order: int = 0
 
 

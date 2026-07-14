@@ -3,15 +3,16 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.db import get_db
-from app.models import Category, Product, Restaurant
+from app.models import Category, CategoryGroup, DeliveryZone, Product, Restaurant
 from app.schemas.catalog import (
+    CategoryGroupOut,
     CategoryWithSubcategories,
     ProductOut,
     RestaurantDetail,
     RestaurantOut,
     SubcategoryOut,
 )
-from app.services.geo import haversine_km
+from app.services.geo import haversine_km, is_within_zone, shop_origin, zone_is_configured
 
 router = APIRouter(prefix="/restaurants", tags=["catalog"])
 
@@ -48,8 +49,15 @@ def _build_detail(restaurant: Restaurant, db: Session) -> RestaurantDetail:
         cw.subcategories = sub_out
         cat_out.append(cw)
 
+    groups = db.scalars(
+        select(CategoryGroup)
+        .where(CategoryGroup.restaurant_id == restaurant.id)
+        .order_by(CategoryGroup.sort_order)
+    ).all()
+
     detail = RestaurantDetail.model_validate(restaurant)
     detail.categories = cat_out
+    detail.category_groups = [CategoryGroupOut.model_validate(g) for g in groups]
     return detail
 
 
@@ -65,30 +73,46 @@ def get_default_store(db: Session = Depends(get_db)):
     return _build_detail(restaurant, db)
 
 
+def _store_zone(db: Session, restaurant_id: int) -> DeliveryZone | None:
+    return db.scalar(
+        select(DeliveryZone)
+        .where(DeliveryZone.restaurant_id == restaurant_id, DeliveryZone.is_active.is_(True))
+        .order_by(DeliveryZone.id)
+        .limit(1)
+    )
+
+
 @router.get("/nearest", response_model=RestaurantDetail)
 def get_nearest_store(lat: float, lng: float, db: Session = Depends(get_db)):
+    """Foydalanuvchiga eng yaqin, uni yetkazish hududi qamrab oladigan do'kon.
+
+    Yaqinlikda tartiblab, har birining yetkazish zonasini tekshiramiz — birinchi
+    mos kelgani qaytadi. Hech qaysi do'kon hududni qamramasa — 404 OUT_OF_RANGE.
+    """
     restaurants = db.scalars(
         select(Restaurant).where(Restaurant.is_active.is_(True))
     ).all()
-    
     if not restaurants:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No active stores found")
-    
-    nearest_restaurant = None
-    min_distance = float('inf')
-    
+
+    # Har bir do'kon uchun masofa hisoblash origin'i: o'zining lat/lng'i,
+    # bo'lmasa yetkazish zonasi markazi (ko'p do'konlar faqat zona belgilagan).
+    ranked: list[tuple[float, Restaurant, DeliveryZone | None]] = []
     for r in restaurants:
-        if r.lat is not None and r.lng is not None:
-            dist = haversine_km(lat, lng, r.lat, r.lng)
-            if dist < min_distance:
-                min_distance = dist
-                nearest_restaurant = r
-                
-    if not nearest_restaurant:
-        # Fallback if no restaurant has coordinates
-        nearest_restaurant = restaurants[0]
-        
-    return _build_detail(nearest_restaurant, db)
+        zone = _store_zone(db, r.id)
+        origin = shop_origin(r, zone)
+        if origin:
+            ranked.append((haversine_km(lat, lng, origin[0], origin[1]), r, zone))
+
+    if not ranked:
+        return _build_detail(restaurants[0], db)
+
+    ranked.sort(key=lambda x: x[0])
+    for _, r, zone in ranked:
+        if not zone_is_configured(zone) or is_within_zone(zone, lat, lng):
+            return _build_detail(r, db)
+
+    raise HTTPException(status.HTTP_404_NOT_FOUND, "OUT_OF_RANGE")
 
 
 @router.get("/{restaurant_id}", response_model=RestaurantDetail)

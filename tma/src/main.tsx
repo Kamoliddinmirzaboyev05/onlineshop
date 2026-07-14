@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
+import "./store/theme"; // <html data-theme> ni birinchi paintdan oldin o'rnatadi
 import { initTelegram } from "./telegram";
 
 initTelegram();

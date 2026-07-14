@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, LogOut, Megaphone, Menu, Settings, Shield, Store, Users, X,
+  Building2, LayoutDashboard, LogOut, Megaphone, Menu, Settings, Shield, Store, Users, X,
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
@@ -8,6 +8,7 @@ import { useAuth } from "../store";
 const links = [
   { to: "/", label: "Umumiy", icon: LayoutDashboard, end: true },
   { to: "/businesses", label: "Tadbirkorlar", icon: Store },
+  { to: "/stores", label: "Do'konlar", icon: Building2 },
   { to: "/customers", label: "Mijozlar", icon: Users },
   { to: "/announcements", label: "E'lonlar", icon: Megaphone },
   { to: "/settings", label: "Sozlamalar", icon: Settings },

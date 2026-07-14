@@ -42,6 +42,18 @@ export interface BusinessRow {
   stores_count: number;
 }
 
+// Do'kon ro'yxati qatori (/platform/stores).
+export interface StoreRow {
+  id: number;
+  name: string;
+  address?: string | null;
+  is_active: boolean;
+  is_open: boolean;
+  business_id: number;
+  business_name: string;
+  created_at: string;
+}
+
 // Bot foydalanuvchisi / mijoz (/platform/users).
 export interface UserRow {
   id: number;

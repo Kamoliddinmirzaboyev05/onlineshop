@@ -90,8 +90,13 @@ def create_order(db: Session, user: User, data: OrderCreateIn) -> Order:
             )
         address_line = reverse_geocode(lat, lng) or f"📍 {lat:.5f}, {lng:.5f}"
 
-    # Yetkazish hududi (doira) tekshiruvi — faol zona bo'lsa.
-    zone = db.scalar(select(DeliveryZone).where(DeliveryZone.is_active.is_(True)).limit(1))
+    # Yetkazish hududi (doira) tekshiruvi — shu do'konning faol zonasi bo'lsa.
+    zone = db.scalar(
+        select(DeliveryZone)
+        .where(DeliveryZone.restaurant_id == restaurant.id, DeliveryZone.is_active.is_(True))
+        .order_by(DeliveryZone.id)
+        .limit(1)
+    )
     if zone_is_configured(zone):
         if lat is None or lng is None:
             raise HTTPException(

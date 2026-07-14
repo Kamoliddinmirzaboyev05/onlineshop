@@ -28,6 +28,20 @@ class BusinessRow(BusinessOut):
     stores_count: int
 
 
+class PlatformStoreRow(BaseModel):
+    id: int
+    name: str
+    address: str | None = None
+    is_active: bool
+    is_open: bool
+    business_id: int
+    business_name: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class PlatformAdminOut(BaseModel):
     id: int
     username: str

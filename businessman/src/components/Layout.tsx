@@ -32,7 +32,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     get<StoreT[]>("/business/stores")
       .then((data) => {
         setStores(data);
-        if (data.length && selectedStoreId == null) setSelectedStore(data[0].id);
+        if (data.length && !data.some((s) => s.id === selectedStoreId)) setSelectedStore(data[0].id);
       })
       .catch(() => setStores([]));
     // faqat bir marta — mount'da

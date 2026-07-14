@@ -2,11 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* Ilova mavzusi — Telegram klientiga bog'liq emas, Profil sahifasidan
+   tanlanadi (store/theme.ts) va <html data-theme="..."> orqali qo'llanadi.
+   Standart — light. */
+:root,
+:root[data-theme="light"] {
   --tg-bg: #ffffff;
-  --tg-text: #000000;
-  --tg-hint: #999999;
+  --tg-text: #0f172a;
+  --tg-hint: #94a3b8;
   --tg-card: #f4f4f5;
+}
+
+:root[data-theme="dark"] {
+  --tg-bg: #17181c;
+  --tg-text: #f4f4f5;
+  --tg-hint: #8b8d98;
+  --tg-card: #232428;
 }
 
 html,

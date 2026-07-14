@@ -8,6 +8,7 @@ interface AuthState {
   ready: boolean;
   error: string | null;
   login: () => Promise<void>;
+  setUser: (u: User) => void;
 }
 
 // Guards against StrictMode's double-invoked effect firing two concurrent auth POSTs.
@@ -36,4 +37,5 @@ export const useAuth = create<AuthState>((set) => ({
       authInFlight = false;
     }
   },
+  setUser: (u) => set({ user: u }),
 }));

@@ -1,27 +1,14 @@
-import { useEffect, useState } from "react";
+import { ChevronRight, MapPin } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import LocationPicker from "../components/LocationPicker";
+import LocationConfirmSheet from "../components/LocationConfirmSheet";
+import PageHeader from "../components/PageHeader";
 import { useI18n } from "../i18n";
 import { formatUzPhone, money } from "../lib/format";
 import { useAuth } from "../store/auth";
 import { useCart } from "../store/cart";
 import { haptic } from "../telegram";
-
-/** Koordinatadan o'qiladigan manzilni oladi (OpenStreetMap Nominatim). */
-async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
-  try {
-    const r = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=jsonv2&accept-language=uz,ru&zoom=18`
-    );
-    if (!r.ok) return null;
-    const d = await r.json();
-    if (d?.display_name) return String(d.display_name).split(", ").slice(0, 4).join(", ");
-  } catch {
-    /* ignore */
-  }
-  return null;
-}
 
 /** Backend xato matnini ({"detail": "..."}) ajratib oladi. */
 function errorText(e: unknown): string {
@@ -48,20 +35,11 @@ export default function CheckoutPage() {
   const [comment, setComment] = useState("");
   const [loc, setLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [address, setAddress] = useState("");
-  const [addrLoading, setAddrLoading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const lines = Object.values(cart.lines);
-
-  // Joylashuv tanlangach — manzilni avtomatik aniqlaymiz (foydalanuvchi yozmaydi).
-  useEffect(() => {
-    if (!loc) return;
-    setAddrLoading(true);
-    reverseGeocode(loc.lat, loc.lng)
-      .then((a) => setAddress(a ?? `📍 ${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`))
-      .finally(() => setAddrLoading(false));
-  }, [loc?.lat, loc?.lng]);
 
   const submit = async () => {
     if (cart.restaurantId == null) {
@@ -73,13 +51,12 @@ export default function CheckoutPage() {
       return;
     }
     if (!loc) {
-      setError(lang === "uz" ? "Joylashuvga ruxsat bering yoki xaritada belgilang" : "Разрешите геолокацию или отметьте на карте");
+      setError(lang === "uz" ? "Yetkazib berish manzilini belgilang" : "Укажите адрес доставки");
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
-      // Manzil joylashuvdan avtomatik aniqlangan; bo'sh bo'lsa server koordinatadan oladi.
       const order = await api.placeOrder({
         restaurant_id: cart.restaurantId,
         items: lines.map((l) => ({
@@ -107,74 +84,71 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-2xl font-bold">{t.checkout}</h1>
+    <div className="min-h-full bg-tg-bg pb-8">
+      <PageHeader title={t.checkout} back />
 
-      <div>
-        <label className="text-sm font-medium">
-          📍 {lang === "uz" ? "Yetkazib berish manzili" : "Адрес доставки"}
-        </label>
-        <p className="text-xs text-tg-hint mt-0.5 mb-1">
-          {lang === "uz"
-            ? "Joylashuvingiz avtomatik aniqlanadi. Kerak bo'lsa nuqtani xaritada suring."
-            : "Геолокация определится автоматически. При необходимости передвиньте точку на карте."}
-        </p>
-        <LocationPicker value={loc} onChange={(lat, lng) => setLoc({ lat, lng })} />
+      <div className="p-4 space-y-4">
+        <button
+          onClick={() => setPickerOpen(true)}
+          className="w-full flex items-center gap-3 card p-3.5 text-left"
+        >
+          <span className="h-10 w-10 shrink-0 rounded-xl bg-brand-light flex items-center justify-center text-brand">
+            <MapPin size={18} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">{lang === "uz" ? "Yetkazib berish manzili" : "Адрес доставки"}</p>
+            <p className="text-xs text-tg-hint truncate mt-0.5">
+              {address || (lang === "uz" ? "Manzilni belgilash uchun bosing" : "Нажмите, чтобы указать адрес")}
+            </p>
+          </div>
+          <ChevronRight size={18} className="text-tg-hint shrink-0" />
+        </button>
 
-        {/* Aniqlangan manzil — avtomatik to'ldiriladi, tahrirlash ham mumkin */}
-        <input
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder={
-            loc
-              ? (addrLoading
-                  ? (lang === "uz" ? "Manzil aniqlanmoqda…" : "Определение адреса…")
-                  : t.address_ph)
-              : (lang === "uz" ? "Joylashuv kutilmoqda…" : "Ожидание геолокации…")
-          }
-          className="w-full rounded-xl bg-tg-card px-4 py-3 outline-none mt-2"
+        <div>
+          <label className="text-sm text-tg-hint">{t.phone}</label>
+          <input
+            value={phone}
+            onChange={(e) => setPhone(formatUzPhone(e.target.value))}
+            inputMode="tel"
+            placeholder="+998 88 888 88 88"
+            className="w-full rounded-xl bg-tg-card px-4 py-3 outline-none mt-1"
+          />
+        </div>
+
+        <div>
+          <label className="text-sm text-tg-hint">{t.comment}</label>
+          <input
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            className="w-full rounded-xl bg-tg-card px-4 py-3 outline-none mt-1"
+          />
+        </div>
+
+        <div className="flex justify-between font-bold text-lg">
+          <span>{t.total}</span>
+          <span>{money(cart.total())} {t.sum}</span>
+        </div>
+
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+
+        <button onClick={submit} disabled={submitting} className="btn-brand w-full disabled:opacity-60">
+          {submitting ? "…" : t.place_order}
+        </button>
+      </div>
+
+      {pickerOpen && (
+        <LocationConfirmSheet
+          initial={loc}
+          lang={lang}
+          onClose={() => setPickerOpen(false)}
+          onConfirm={(lat, lng, addr) => {
+            setLoc({ lat, lng });
+            setAddress(addr);
+            setPickerOpen(false);
+            haptic("light");
+          }}
         />
-        <p className={`text-xs mt-1 ${loc ? "text-emerald-600" : "text-tg-hint"}`}>
-          {loc
-            ? (lang === "uz" ? "✓ Joylashuv belgilandi" : "✓ Местоположение отмечено")
-            : (lang === "uz" ? "Joylashuv aniqlanmoqda…" : "Определение местоположения…")}
-        </p>
-      </div>
-
-      <div>
-        <label className="text-sm text-tg-hint">{t.phone}</label>
-        <input
-          value={phone}
-          onChange={(e) => setPhone(formatUzPhone(e.target.value))}
-          inputMode="tel"
-          placeholder="+998 88 888 88 88"
-          className="w-full rounded-xl bg-tg-card px-4 py-3 outline-none mt-1"
-        />
-      </div>
-
-      <div>
-        <label className="text-sm text-tg-hint">{t.comment}</label>
-        <input
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          className="w-full rounded-xl bg-tg-card px-4 py-3 outline-none mt-1"
-        />
-      </div>
-
-      <div className="flex justify-between text-tg-hint">
-        <span>{t.delivery}</span>
-        <span>{t.total}</span>
-      </div>
-      <div className="flex justify-between font-bold text-lg">
-        <span>{t.total}</span>
-        <span>{money(cart.total())} {t.sum}</span>
-      </div>
-
-      {error && <p className="text-red-500 text-sm">{error}</p>}
-
-      <button onClick={submit} disabled={submitting} className="btn-brand w-full disabled:opacity-60">
-        {submitting ? "…" : t.place_order}
-      </button>
+      )}
     </div>
   );
 }

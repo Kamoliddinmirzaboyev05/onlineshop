@@ -42,9 +42,12 @@ bo'lim sifatida ishlaydi, mahsulot qo'shishda tanlanmaydi.
   `category_groups: list[CategoryGroupOut]`.
 - `backend/app/api/routes/catalog.py`: `_build_detail` `category_groups`ni ham
   qaytaradi (restaurant bo'yicha, sort_order tartibida).
-- Admin/business category CRUD routerlarida (`admin.py`/`business.py`):
-  `/admin/category-groups` va `/business/category-groups` — GET/POST/PUT/DELETE
-  (mavjud category CRUD pattern bo'yicha, restaurant-scoped).
+- `admin.py`ga `/admin/category-groups` — GET/POST/PUT/DELETE (mavjud
+  `/admin/categories` pattern bo'yicha, `current_restaurant` orqali
+  restaurant-scoped). Alohida `/business/*` marshruti **kerak emas** —
+  businessman paneli allaqachon shu `/admin/*` endpointlarni `restaurant_id`
+  query-param bilan chaqiradi (`current_restaurant` ikkala principal turini —
+  `AdminUser` va `Business` — allaqachon qo'llab-quvvatlaydi).
 - `backend/app/schemas/auth.py`: `UserOut`ga `created_at: datetime`.
 - `backend/app/api/routes/auth.py`: yangi `PATCH /auth/me` — `first_name`,
   `phone` yangilash (`UserUpdateIn` schema, ikkalasi ham ixtiyoriy).

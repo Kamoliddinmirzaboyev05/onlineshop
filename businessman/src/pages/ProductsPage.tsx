@@ -1,4 +1,4 @@
-import { CircleCheck, CircleX, FolderTree, Pencil, Plus, ShoppingBasket, Store, Tags, Trash2 } from "lucide-react";
+import { CircleCheck, CircleX, FolderTree, Heading, Pencil, Plus, Search, ShoppingBasket, Store, Tags, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { del, get, post, put, withStore } from "../api";
@@ -6,9 +6,9 @@ import { confirm } from "../components/Confirm";
 import ImageUpload from "../components/ImageUpload";
 import { ErrorRetry, TableSkeleton } from "../components/Skeleton";
 import { useStore } from "../store";
-import type { Category, Product } from "../types";
+import type { Category, CategoryGroup, Product } from "../types";
 
-type Tab = "products" | "subcategories" | "categories";
+type Tab = "products" | "subcategories" | "groups" | "categories";
 const money = (n: number) => n.toLocaleString("ru-RU").replace(/,/g, " ");
 
 const UNITS = [
@@ -25,27 +25,41 @@ const UNITS = [
 ];
 
 function numInput(val: number | undefined) {
-  return val === 0 || val === undefined ? "" : String(val);
+  if (val === 0 || val === undefined) return "";
+  const [int, dec] = String(val).split(".");
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return dec !== undefined ? `${grouped}.${dec}` : grouped;
 }
-function parseNum(s: string) { return s === "" ? 0 : Number(s); }
+function parseNum(s: string) {
+  const cleaned = s.replace(/[^\d.]/g, "");
+  return cleaned === "" ? 0 : Number(cleaned);
+}
 
 export default function ProductsPage() {
   const storeId = useStore((s) => s.selectedStoreId);
   const [tab, setTab] = useState<Tab>("products");
   const [categories, setCategories] = useState<Category[]>([]);
+  const [groups, setGroups] = useState<CategoryGroup[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [editing, setEditing] = useState<Partial<Product> | null>(null);
   const [editCat, setEditCat] = useState<Partial<Category> | null>(null);
   const [editSubcat, setEditSubcat] = useState<Partial<Category> | null>(null);
+  const [editGroup, setEditGroup] = useState<Partial<CategoryGroup> | null>(null);
   const [quickSub, setQuickSub] = useState<Partial<Category> | null>(null);
+  // Mahsulot modalidagi Kategoriya tanlovi — subkategoriyasi bo'sh bo'lganda ham
+  // tanlov "yopishib qolishi" uchun alohida saqlanadi (faqat derivatsiyaga tayanmaydi).
+  const [topOverride, setTopOverride] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filterCat, setFilterCat] = useState<number | "all">("all");
 
   const loadData = async (sid: number) => {
     setErr(false);
     try {
       setCategories(await get<Category[]>(withStore(`/admin/restaurants/${sid}/categories`, sid)));
+      setGroups(await get<CategoryGroup[]>(withStore(`/admin/restaurants/${sid}/category-groups`, sid)));
       setProducts(await get<Product[]>(withStore(`/admin/restaurants/${sid}/products`, sid)));
     } catch {
       setErr(true);
@@ -116,12 +130,54 @@ export default function ProductsPage() {
     }
   };
 
+  const saveGroup = async () => {
+    if (!editGroup || storeId == null || !editGroup.name_uz?.trim() || saving) return;
+    setSaving(true);
+    try {
+      const body = {
+        name_uz: editGroup.name_uz,
+        name_ru: editGroup.name_ru || editGroup.name_uz,
+        sort_order: editGroup.sort_order ?? groups.length,
+      };
+      if (editGroup.id) await put(withStore(`/admin/category-groups/${editGroup.id}`, storeId), body);
+      else await post(withStore("/admin/category-groups", storeId), body);
+      const isEdit = !!editGroup.id;
+      setEditGroup(null);
+      await loadData(storeId);
+      toast.success(isEdit ? "Title yangilandi" : "Title qo'shildi");
+    } catch {
+      toast.error("Saqlab bo'lmadi");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeGroup = async (g: CategoryGroup) => {
+    if (storeId == null) return;
+    const count = categories.filter((c) => c.group_id === g.id).length;
+    const ok = await confirm({
+      title: `"${g.name_uz}" title o'chirilsinmi?`,
+      message: count ? `Bu title ostida ${count} ta kategoriya bor — ular sarlavhasiz qoladi.` : undefined,
+      confirmText: "O'chirish",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await del(withStore(`/admin/category-groups/${g.id}`, storeId));
+      await loadData(storeId);
+      toast.success("Title o'chirildi");
+    } catch {
+      toast.error("O'chirib bo'lmadi");
+    }
+  };
+
   const saveCat = async () => {
     if (!editCat || storeId == null || !editCat.name_uz?.trim() || saving) return;
     setSaving(true);
     try {
       const body = {
         parent_id: null,
+        group_id: editCat.group_id ?? null,
         name_uz: editCat.name_uz,
         name_ru: editCat.name_ru || editCat.name_uz,
         image_url: editCat.image_url ?? null,
@@ -212,7 +268,8 @@ export default function ProductsPage() {
   const subcategories = categories.filter((c) => c.parent_id != null);
   // Mahsulot modalidagi "Kategoriya" tanlovi alohida saqlanmaydi — tanlangan
   // subkategoriyaning ota-kategoriyasidan chiqarib olinadi (yagona haqiqat manbai).
-  const selectedTopId = categories.find((c) => c.id === editing?.category_id)?.parent_id
+  const selectedTopId = topOverride
+    ?? categories.find((c) => c.id === editing?.category_id)?.parent_id
     ?? topCategories[0]?.id;
   const childrenOfSelectedTop = categories.filter((c) => c.parent_id === selectedTopId);
   const catPath = (id: number) => {
@@ -222,6 +279,13 @@ export default function ProductsPage() {
     return parent ? `${parent.name_uz} > ${c.name_uz}` : c.name_uz;
   };
   const margin = (p: Product) => (p.price > 0 ? Math.round(((p.price - p.cost) / p.price) * 100) : 0);
+
+  const filteredProducts = products.filter((p) => {
+    if (filterCat !== "all" && categories.find((c) => c.id === p.category_id)?.parent_id !== filterCat) return false;
+    const q = search.trim().toLowerCase();
+    if (q && !p.name_uz.toLowerCase().includes(q) && !p.name_ru.toLowerCase().includes(q)) return false;
+    return true;
+  });
 
   if (storeId == null) {
     return (
@@ -250,6 +314,10 @@ export default function ProductsPage() {
           onClick={() => setTab("subcategories")}
         ><Tags size={16} /> Subkategoriyalar</button>
         <button
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${tab === "groups" ? "bg-brand text-white shadow-sm" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+          onClick={() => setTab("groups")}
+        ><Heading size={16} /> Title</button>
+        <button
           className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${tab === "categories" ? "bg-brand text-white shadow-sm" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
           onClick={() => setTab("categories")}
         ><FolderTree size={16} /> Kategoriyalar</button>
@@ -258,12 +326,36 @@ export default function ProductsPage() {
       {/* ── PRODUCTS ─────────────────────────────────────── */}
       {tab === "products" && (
         <>
-          <div className="flex justify-end mb-4">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  className="input w-56 pl-9"
+                  placeholder="Mahsulot qidirish..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <select
+                className="input w-48"
+                value={filterCat}
+                onChange={(e) => setFilterCat(e.target.value === "all" ? "all" : +e.target.value)}
+              >
+                <option value="all">Barcha kategoriyalar</option>
+                {topCategories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name_uz}</option>
+                ))}
+              </select>
+            </div>
             <button
               className="btn"
               disabled={topCategories.length === 0}
               title={topCategories.length === 0 ? "Avval kategoriya qo'shing" : ""}
-              onClick={() => setEditing({ category_id: subcategories[0]?.id, is_available: true, price: 0, cost: 0, stock: 0, unit: "kg", low_stock_threshold: 10 })}
+              onClick={() => {
+                setTopOverride(undefined);
+                setEditing({ category_id: subcategories[0]?.id, is_available: true, price: 0, cost: 0, stock: 0, unit: "kg", low_stock_threshold: 10 });
+              }}
             >
               <Plus size={18} /> Mahsulot qo'shish
             </button>
@@ -284,7 +376,7 @@ export default function ProductsPage() {
                 </tr>
               </thead>
               <tbody>
-                {products.map((p) => (
+                {filteredProducts.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50/60">
                     <td className="td font-medium text-slate-900">
                       <div className="flex items-center gap-3">
@@ -311,15 +403,17 @@ export default function ProductsPage() {
                     </td>
                     <td className="td text-right">
                       <div className="inline-flex items-center gap-1">
-                        <button className="icon-btn" title="Tahrirlash" onClick={() => setEditing(p)}><Pencil size={16} /></button>
+                        <button className="icon-btn" title="Tahrirlash" onClick={() => { setTopOverride(undefined); setEditing(p); }}><Pencil size={16} /></button>
                         <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => removeProduct(p)}><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>
                 ))}
-                {products.length === 0 && (
+                {filteredProducts.length === 0 && (
                   <tr><td colSpan={7} className="td text-center text-slate-400 py-10">
-                    {subcategories.length === 0 ? "Avval subkategoriya qo'shing" : "Mahsulot yo'q"}
+                    {products.length === 0
+                      ? (subcategories.length === 0 ? "Avval subkategoriya qo'shing" : "Mahsulot yo'q")
+                      : "Filterga mos mahsulot topilmadi"}
                   </td></tr>
                 )}
               </tbody>
@@ -382,6 +476,50 @@ export default function ProductsPage() {
         </>
       )}
 
+      {/* ── TITLE (category_groups) ──────────────────────── */}
+      {tab === "groups" && (
+        <>
+          <div className="flex justify-end mb-4">
+            <button className="btn" onClick={() => setEditGroup({})}><Plus size={18} /> Title qo'shish</button>
+          </div>
+
+          {err ? <ErrorRetry onRetry={reload} /> : loading ? <TableSkeleton cols={3} /> : (
+          <div className="card overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50">
+                  <th className="th">Nomi (uz)</th>
+                  <th className="th">Название (ru)</th>
+                  <th className="th">Kategoriyalar</th>
+                  <th className="th"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {groups.map((g) => (
+                  <tr key={g.id} className="hover:bg-slate-50/60">
+                    <td className="td font-medium text-slate-900">{g.name_uz}</td>
+                    <td className="td">{g.name_ru}</td>
+                    <td className="td">{categories.filter((c) => c.group_id === g.id).length}</td>
+                    <td className="td text-right">
+                      <div className="inline-flex items-center gap-1">
+                        <button className="icon-btn" title="Tahrirlash" onClick={() => setEditGroup(g)}><Pencil size={16} /></button>
+                        <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => removeGroup(g)}><Trash2 size={16} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {groups.length === 0 && (
+                  <tr><td colSpan={4} className="td text-center text-slate-400 py-10">
+                    Title yo'q — bosh sahifada kategoriyalarni sarlavha ostida guruhlash uchun qo'shing
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          )}
+        </>
+      )}
+
       {/* ── CATEGORIES ───────────────────────────────────── */}
       {tab === "categories" && (
         <>
@@ -396,6 +534,7 @@ export default function ProductsPage() {
                 <tr className="bg-slate-50">
                   <th className="th">Nomi (uz)</th>
                   <th className="th">Название (ru)</th>
+                  <th className="th">Title</th>
                   <th className="th">Subkategoriyalar</th>
                   <th className="th"></th>
                 </tr>
@@ -412,6 +551,7 @@ export default function ProductsPage() {
                       </div>
                     </td>
                     <td className="td">{top.name_ru}</td>
+                    <td className="td text-slate-500">{groups.find((g) => g.id === top.group_id)?.name_uz ?? "—"}</td>
                     <td className="td">{categories.filter((c) => c.parent_id === top.id).length}</td>
                     <td className="td text-right">
                       <div className="inline-flex items-center gap-1">
@@ -422,7 +562,7 @@ export default function ProductsPage() {
                   </tr>
                 ))}
                 {topCategories.length === 0 && (
-                  <tr><td colSpan={4} className="td text-center text-slate-400 py-10">Kategoriya yo'q — "Qo'shish" bilan qo'shing</td></tr>
+                  <tr><td colSpan={5} className="td text-center text-slate-400 py-10">Kategoriya yo'q — "Qo'shish" bilan qo'shing</td></tr>
                 )}
               </tbody>
             </table>
@@ -453,6 +593,7 @@ export default function ProductsPage() {
                       onChange={(e) => {
                         const topId = +e.target.value;
                         const firstChild = categories.find((c) => c.parent_id === topId);
+                        setTopOverride(topId);
                         setEditing({ ...editing, category_id: firstChild?.id });
                       }}
                     >
@@ -551,13 +692,13 @@ export default function ProductsPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs text-slate-500 mb-1">Sotuv narxi (so'm)</label>
-                    <input className="input" type="number" min="0" placeholder="0"
+                    <input className="input" type="text" inputMode="decimal" placeholder="0"
                       value={numInput(editing.price)}
                       onChange={(e) => setEditing({ ...editing, price: parseNum(e.target.value) })} />
                   </div>
                   <div>
                     <label className="block text-xs text-slate-500 mb-1">Tannarx (so'm)</label>
-                    <input className="input" type="number" min="0" placeholder="0"
+                    <input className="input" type="text" inputMode="decimal" placeholder="0"
                       value={numInput(editing.cost)}
                       onChange={(e) => setEditing({ ...editing, cost: parseNum(e.target.value) })} />
                   </div>
@@ -582,13 +723,13 @@ export default function ProductsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-slate-500 mb-1">Qoldiq ({editing.unit ?? "kg"})</label>
-                    <input className="input" type="number" min="0" placeholder="0"
+                    <input className="input" type="text" inputMode="decimal" placeholder="0"
                       value={numInput(editing.stock)}
                       onChange={(e) => setEditing({ ...editing, stock: parseNum(e.target.value) })} />
                   </div>
                   <div>
                     <label className="block text-xs text-slate-500 mb-1">Kam qoldiq chegarasi ({editing.unit ?? "kg"})</label>
-                    <input className="input" type="number" min="0" placeholder="10"
+                    <input className="input" type="text" inputMode="decimal" placeholder="10"
                       value={numInput(editing.low_stock_threshold)}
                       onChange={(e) => setEditing({ ...editing, low_stock_threshold: parseNum(e.target.value) })} />
                   </div>
@@ -654,6 +795,20 @@ export default function ProductsPage() {
                 </div>
               </div>
               <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Title (ixtiyoriy)</label>
+                <select
+                  className="input"
+                  value={editCat.group_id ?? ""}
+                  onChange={(e) => setEditCat({ ...editCat, group_id: e.target.value ? +e.target.value : null })}
+                >
+                  <option value="">Yo'q</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>{g.name_uz}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-400 mt-1">Bosh sahifada bu kategoriya shu sarlavha ostida ko'rsatiladi.</p>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Kategoriya rasmi</label>
                 <ImageUpload
                   label=""
@@ -707,6 +862,37 @@ export default function ProductsPage() {
             <div className="px-7 py-4 border-t border-slate-100 flex gap-3 justify-end bg-slate-50/60 rounded-b-2xl">
               <button className="btn-ghost" onClick={() => setEditSubcat(null)} disabled={saving}><CircleX size={16} /> Bekor</button>
               <button className="btn px-6" onClick={saveSubcat} disabled={saving || !editSubcat.parent_id || !editSubcat.name_uz?.trim()}>
+                <CircleCheck size={16} /> {saving ? "Saqlanmoqda..." : "Saqlash"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TITLE MODAL ──────────────────────────────────── */}
+      {editGroup && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="card w-full max-w-lg">
+            <div className="px-7 pt-7 pb-4 border-b border-slate-100">
+              <h2 className="font-bold text-xl">{editGroup.id ? "Title'ni tahrirlash" : "Yangi title"}</h2>
+            </div>
+            <div className="px-7 py-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Nomi (uz)</label>
+                  <input className="input" placeholder="Masalan: Meva va sabzavotlar" value={editGroup.name_uz ?? ""}
+                    onChange={(e) => setEditGroup({ ...editGroup, name_uz: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Название (ru)</label>
+                  <input className="input" placeholder="Например: Фрукты и овощи" value={editGroup.name_ru ?? ""}
+                    onChange={(e) => setEditGroup({ ...editGroup, name_ru: e.target.value })} />
+                </div>
+              </div>
+            </div>
+            <div className="px-7 py-4 border-t border-slate-100 flex gap-3 justify-end bg-slate-50/60 rounded-b-2xl">
+              <button className="btn-ghost" onClick={() => setEditGroup(null)} disabled={saving}><CircleX size={16} /> Bekor</button>
+              <button className="btn px-6" onClick={saveGroup} disabled={saving || !editGroup.name_uz?.trim()}>
                 <CircleCheck size={16} /> {saving ? "Saqlanmoqda..." : "Saqlash"}
               </button>
             </div>

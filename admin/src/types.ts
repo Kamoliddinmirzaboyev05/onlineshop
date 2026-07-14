@@ -20,9 +20,18 @@ export interface Restaurant {
 export interface Category {
   id: number;
   parent_id?: number | null;
+  group_id?: number | null;
   name_uz: string;
   name_ru: string;
   image_url?: string | null;
+  sort_order: number;
+}
+
+// Title — bosh sahifada bir nechta kategoriyani sarlavha ostida guruhlaydi.
+export interface CategoryGroup {
+  id: number;
+  name_uz: string;
+  name_ru: string;
   sort_order: number;
 }
 
