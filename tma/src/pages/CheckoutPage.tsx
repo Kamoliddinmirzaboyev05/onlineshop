@@ -1,13 +1,13 @@
 import { ChevronRight, MapPin } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import LocationConfirmSheet from "../components/LocationConfirmSheet";
 import PageHeader from "../components/PageHeader";
 import { useI18n } from "../i18n";
 import { formatUzPhone, money } from "../lib/format";
 import { useAuth } from "../store/auth";
 import { useCart } from "../store/cart";
+import { useCheckoutDraft } from "../store/checkoutDraft";
 import { haptic } from "../telegram";
 
 /** Backend xato matnini ({"detail": "..."}) ajratib oladi. */
@@ -31,13 +31,15 @@ export default function CheckoutPage() {
   const cart = useCart();
   const user = useAuth((s) => s.user);
 
-  const [phone, setPhone] = useState(formatUzPhone(user?.phone ?? ""));
-  const [comment, setComment] = useState("");
-  const [loc, setLoc] = useState<{ lat: number; lng: number } | null>(null);
-  const [address, setAddress] = useState("");
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const { phone, comment, loc, address, setPhone, setComment, reset: resetDraft } = useCheckoutDraft();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Qoralamada telefon hali bo'sh bo'lsa, profildagi raqam bilan to'ldiramiz.
+  useEffect(() => {
+    if (!phone && user?.phone) setPhone(formatUzPhone(user.phone));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.phone]);
 
   const lines = Object.values(cart.lines);
 
@@ -72,6 +74,7 @@ export default function CheckoutPage() {
       });
       haptic("medium");
       cart.clear();
+      resetDraft();
       nav(`/orders/${order.id}?placed=1`, { replace: true });
     } catch (e) {
       setError(errorText(e));
@@ -89,7 +92,7 @@ export default function CheckoutPage() {
 
       <div className="p-4 space-y-5 bg-white">
         <button
-          onClick={() => setPickerOpen(true)}
+          onClick={() => nav("/checkout/location")}
           className="w-full flex items-center gap-4 bg-[#F4F5F7] rounded-[20px] p-3 text-left active:scale-[0.98] transition"
         >
           <div className="h-[50px] w-[50px] shrink-0 rounded-[16px] bg-[#FFF0E5] flex items-center justify-center text-[#FF6B00]">
@@ -137,20 +140,6 @@ export default function CheckoutPage() {
           {submitting ? "…" : (lang === "uz" ? "Buyurtma berish" : "Заказать")}
         </button>
       </div>
-
-      {pickerOpen && (
-        <LocationConfirmSheet
-          initial={loc}
-          lang={lang}
-          onClose={() => setPickerOpen(false)}
-          onConfirm={(lat, lng, addr) => {
-            setLoc({ lat, lng });
-            setAddress(addr);
-            setPickerOpen(false);
-            haptic("light");
-          }}
-        />
-      )}
     </div>
   );
 }
