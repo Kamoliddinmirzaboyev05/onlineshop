@@ -101,19 +101,30 @@ export default function LocationConfirmSheet({ initial, lang, onConfirm, onClose
         <LocateFixed size={18} />
       </button>
 
-      <div className="absolute bottom-0 inset-x-0 bg-tg-bg rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-4 pb-6 space-y-3">
-        <div className="flex items-start gap-3">
-          <span className="h-10 w-10 shrink-0 rounded-xl bg-brand-light flex items-center justify-center text-brand">
-            <MapPin size={18} />
-          </span>
-          <p className="text-sm leading-snug pt-1.5">
-            {loading ? (lang === "uz" ? "Manzil aniqlanmoqda…" : "Определение адреса…") : address}
-          </p>
+      <div className="absolute bottom-0 inset-x-0 bg-white rounded-t-[32px] shadow-[0_-4px_24px_rgba(0,0,0,0.08)] p-5 pb-8 flex flex-col gap-6 z-20">
+        <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto -mt-2" />
+        
+        <div className="flex items-center gap-4">
+          <div className="h-[60px] w-[60px] shrink-0 rounded-[20px] bg-[#FFF0E5] flex items-center justify-center text-[#FF6B00]">
+            <MapPin size={26} fill="currentColor" strokeWidth={1.5} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-[18px] font-bold text-slate-900 leading-snug line-clamp-2">
+              {loading ? (lang === "uz" ? "Manzil aniqlanmoqda…" : "Определение адреса…") : address || "..."}
+            </h3>
+            {!loading && address && (
+              <p className="text-[#FF6B00] text-[11px] font-bold uppercase tracking-wider mt-1.5 flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#FF6B00]" />
+                {address.split(",").pop()?.trim() || (lang === "uz" ? "O'zbekiston" : "Узбекистан")}
+              </p>
+            )}
+          </div>
         </div>
+        
         <button
           onClick={() => onConfirm(center[0], center[1], address)}
           disabled={loading}
-          className="btn-brand w-full disabled:opacity-60"
+          className="w-full bg-[#121822] text-white font-semibold text-lg py-4 rounded-[20px] active:scale-95 transition disabled:opacity-60"
         >
           {lang === "uz" ? "Manzilni tasdiqlash" : "Подтвердить адрес"}
         </button>
