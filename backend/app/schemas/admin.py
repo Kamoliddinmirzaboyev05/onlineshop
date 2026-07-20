@@ -108,6 +108,7 @@ class SupplyRecordOut(BaseModel):
     id: int
     product_id: int
     product_name: str = ""
+    restaurant_id: int = 0
     supplier_name: str
     quantity: float
     unit: str

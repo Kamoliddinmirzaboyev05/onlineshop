@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { get, withStore } from "../api";
+import { get, getAll, withStore } from "../api";
 import { ErrorRetry, TableSkeleton } from "../components/Skeleton";
 import { useStore } from "../store";
 import type { Customer } from "../types";
 
 export default function CustomersPage() {
   const selectedStoreId = useStore((s) => s.selectedStoreId);
+  const stores = useStore((s) => s.stores);
   const [items, setItems] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(false);
@@ -14,12 +15,17 @@ export default function CustomersPage() {
     if (selectedStoreId == null) return;
     setErr(false);
     setLoading(true);
-    get<Customer[]>(withStore("/admin/users", selectedStoreId))
-      .then((d) => { setItems(d); setLoading(false); })
+    const p = selectedStoreId === "all"
+      ? getAll<Customer>("/admin/users", stores.map((s) => s.id)).then((d) => {
+          const seen = new Set<number>();
+          return d.filter((u) => (seen.has(u.id) ? false : (seen.add(u.id), true)));
+        })
+      : get<Customer[]>(withStore("/admin/users", selectedStoreId));
+    p.then((d) => { setItems(d); setLoading(false); })
       .catch(() => { setErr(true); setLoading(false); });
   };
 
-  useEffect(() => { load(); }, [selectedStoreId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [selectedStoreId, stores.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (selectedStoreId == null) {
     return (
@@ -33,7 +39,9 @@ export default function CustomersPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold tracking-tight mb-1">Mijozlar</h1>
-      <p className="text-slate-500 mb-5">Shu do'kondan buyurtma bergan mijozlar.</p>
+      <p className="text-slate-500 mb-5">
+        {selectedStoreId === "all" ? "Barcha do'konlardan buyurtma bergan mijozlar." : "Shu do'kondan buyurtma bergan mijozlar."}
+      </p>
       {err ? <ErrorRetry onRetry={load} /> : loading ? <TableSkeleton cols={5} /> : (
       <div className="card overflow-hidden">
         <table className="w-full">

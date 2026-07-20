@@ -24,6 +24,10 @@ html,
 body,
 #root {
   height: 100%;
+  /* Telegram WebView'da 100% ba'zan haqiqiy ko'rinadigan balandlikdan farq
+     qiladi (native chrome tufayli) — dvh haqiqiy viewport'ni kuzatadi,
+     shu bois bottom nav pastki kontentni bosib qolmaydi. */
+  height: 100dvh;
 }
 
 body {

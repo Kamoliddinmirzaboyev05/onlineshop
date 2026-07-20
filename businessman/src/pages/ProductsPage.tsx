@@ -37,6 +37,9 @@ function parseNum(s: string) {
 
 export default function ProductsPage() {
   const storeId = useStore((s) => s.selectedStoreId);
+  const stores = useStore((s) => s.stores);
+  const isAll = storeId === "all";
+  const storeName = (rid: number) => stores.find((s) => s.id === rid)?.name ?? "—";
   const [tab, setTab] = useState<Tab>("products");
   const [categories, setCategories] = useState<Category[]>([]);
   const [groups, setGroups] = useState<CategoryGroup[]>([]);
@@ -68,20 +71,42 @@ export default function ProductsPage() {
     }
   };
 
+  // "Barcha do'konlar" — faqat ko'rish uchun jamlangan mahsulot+kategoriya
+  // ro'yxati. Kategoriya ID'lari bazada global noyob, shu sababli birlashtirish
+  // xavfsiz — lekin tahrirlash/yaratish aniq do'kon talab qiladi (FK mos kelishi
+  // shart), shuning uchun bu rejimda o'chirilgan.
+  const loadAll = async () => {
+    setErr(false);
+    try {
+      const [prodLists, catLists] = await Promise.all([
+        Promise.all(stores.map((s) => get<Product[]>(withStore(`/admin/restaurants/${s.id}/products`, s.id)))),
+        Promise.all(stores.map((s) => get<Category[]>(withStore(`/admin/restaurants/${s.id}/categories`, s.id)))),
+      ]);
+      setProducts(prodLists.flat());
+      setCategories(catLists.flat());
+      setGroups([]);
+    } catch {
+      setErr(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const reload = () => {
     if (storeId == null) return;
     setLoading(true);
-    loadData(storeId);
+    isAll ? loadAll() : loadData(storeId);
   };
 
   useEffect(() => {
     if (storeId == null) return;
     setLoading(true);
-    loadData(storeId);
-  }, [storeId]);
+    isAll ? loadAll() : loadData(storeId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId, stores.length]);
 
   const saveProduct = async () => {
-    if (!editing || storeId == null || saving) return;
+    if (!editing || storeId == null || isAll || saving) return;
     setSaving(true);
     try {
       const body = {
@@ -113,7 +138,7 @@ export default function ProductsPage() {
   };
 
   const removeProduct = async (p: Product) => {
-    if (storeId == null) return;
+    if (storeId == null || isAll) return;
     const ok = await confirm({
       title: `"${p.name_uz}" o'chirilsinmi?`,
       message: "Mahsulot ro'yxatdan olib tashlanadi.",
@@ -131,7 +156,7 @@ export default function ProductsPage() {
   };
 
   const saveGroup = async () => {
-    if (!editGroup || storeId == null || !editGroup.name_uz?.trim() || saving) return;
+    if (!editGroup || storeId == null || isAll || !editGroup.name_uz?.trim() || saving) return;
     setSaving(true);
     try {
       const body = {
@@ -153,7 +178,7 @@ export default function ProductsPage() {
   };
 
   const removeGroup = async (g: CategoryGroup) => {
-    if (storeId == null) return;
+    if (storeId == null || isAll) return;
     const count = categories.filter((c) => c.group_id === g.id).length;
     const ok = await confirm({
       title: `"${g.name_uz}" title o'chirilsinmi?`,
@@ -172,7 +197,7 @@ export default function ProductsPage() {
   };
 
   const saveCat = async () => {
-    if (!editCat || storeId == null || !editCat.name_uz?.trim() || saving) return;
+    if (!editCat || storeId == null || isAll || !editCat.name_uz?.trim() || saving) return;
     setSaving(true);
     try {
       const body = {
@@ -197,7 +222,7 @@ export default function ProductsPage() {
   };
 
   const saveSubcat = async () => {
-    if (!editSubcat || storeId == null || !editSubcat.name_uz?.trim() || !editSubcat.parent_id || saving) return;
+    if (!editSubcat || storeId == null || isAll || !editSubcat.name_uz?.trim() || !editSubcat.parent_id || saving) return;
     setSaving(true);
     try {
       const body = {
@@ -221,7 +246,7 @@ export default function ProductsPage() {
   };
 
   const saveQuickSub = async () => {
-    if (!quickSub || storeId == null || !quickSub.name_uz?.trim() || !quickSub.parent_id || saving) return;
+    if (!quickSub || storeId == null || isAll || !quickSub.name_uz?.trim() || !quickSub.parent_id || saving) return;
     setSaving(true);
     try {
       const body = {
@@ -244,7 +269,7 @@ export default function ProductsPage() {
   };
 
   const removeCat = async (c: Category) => {
-    if (storeId == null) return;
+    if (storeId == null || isAll) return;
     const count = products.filter((p) => p.category_id === c.id).length;
     const ok = await confirm({
       title: `"${c.name_uz}" kategoriyasi o'chirilsinmi?`,
@@ -350,8 +375,8 @@ export default function ProductsPage() {
             </div>
             <button
               className="btn"
-              disabled={topCategories.length === 0}
-              title={topCategories.length === 0 ? "Avval kategoriya qo'shing" : ""}
+              disabled={isAll || topCategories.length === 0}
+              title={isAll ? "Aniq do'kon tanlang" : topCategories.length === 0 ? "Avval kategoriya qo'shing" : ""}
               onClick={() => {
                 setTopOverride(undefined);
                 setEditing({ category_id: subcategories[0]?.id, is_available: true, price: 0, cost: 0, stock: 0, unit: "kg", low_stock_threshold: 10 });
@@ -367,6 +392,7 @@ export default function ProductsPage() {
               <thead>
                 <tr className="bg-slate-50">
                   <th className="th">Mahsulot</th>
+                  {isAll && <th className="th">Do'kon</th>}
                   <th className="th">Kategoriya</th>
                   <th className="th">Narx</th>
                   <th className="th">Tannarx</th>
@@ -386,6 +412,7 @@ export default function ProductsPage() {
                         {p.name_uz}
                       </div>
                     </td>
+                    {isAll && <td className="td text-slate-500">{storeName(p.restaurant_id)}</td>}
                     <td className="td">{catPath(p.category_id)}</td>
                     <td className="td">{money(p.price)} so'm</td>
                     <td className="td">
@@ -403,14 +430,14 @@ export default function ProductsPage() {
                     </td>
                     <td className="td text-right">
                       <div className="inline-flex items-center gap-1">
-                        <button className="icon-btn" title="Tahrirlash" onClick={() => { setTopOverride(undefined); setEditing(p); }}><Pencil size={16} /></button>
-                        <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => removeProduct(p)}><Trash2 size={16} /></button>
+                        <button className="icon-btn" title={isAll ? "Aniq do'kon tanlang" : "Tahrirlash"} disabled={isAll} onClick={() => { setTopOverride(undefined); setEditing(p); }}><Pencil size={16} /></button>
+                        <button className="icon-btn hover:text-red-600" title={isAll ? "Aniq do'kon tanlang" : "O'chirish"} disabled={isAll} onClick={() => removeProduct(p)}><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>
                 ))}
                 {filteredProducts.length === 0 && (
-                  <tr><td colSpan={7} className="td text-center text-slate-400 py-10">
+                  <tr><td colSpan={isAll ? 8 : 7} className="td text-center text-slate-400 py-10">
                     {products.length === 0
                       ? (subcategories.length === 0 ? "Avval subkategoriya qo'shing" : "Mahsulot yo'q")
                       : "Filterga mos mahsulot topilmadi"}
@@ -429,8 +456,8 @@ export default function ProductsPage() {
           <div className="flex justify-end mb-4">
             <button
               className="btn"
-              disabled={topCategories.length === 0}
-              title={topCategories.length === 0 ? "Avval kategoriya qo'shing" : ""}
+              disabled={isAll || topCategories.length === 0}
+              title={isAll ? "Aniq do'kon tanlang" : topCategories.length === 0 ? "Avval kategoriya qo'shing" : ""}
               onClick={() => setEditSubcat({ parent_id: topCategories[0]?.id })}
             >
               <Plus size={18} /> Subkategoriya qo'shish
@@ -458,8 +485,8 @@ export default function ProductsPage() {
                     <td className="td">{products.filter((p) => p.category_id === c.id).length}</td>
                     <td className="td text-right">
                       <div className="inline-flex items-center gap-1">
-                        <button className="icon-btn" title="Tahrirlash" onClick={() => setEditSubcat(c)}><Pencil size={16} /></button>
-                        <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => removeCat(c)}><Trash2 size={16} /></button>
+                        <button className="icon-btn" disabled={isAll} title={isAll ? "Aniq do'kon tanlang" : "Tahrirlash"} onClick={() => setEditSubcat(c)}><Pencil size={16} /></button>
+                        <button className="icon-btn hover:text-red-600" disabled={isAll} title={isAll ? "Aniq do'kon tanlang" : "O'chirish"} onClick={() => removeCat(c)}><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>
@@ -480,7 +507,7 @@ export default function ProductsPage() {
       {tab === "groups" && (
         <>
           <div className="flex justify-end mb-4">
-            <button className="btn" onClick={() => setEditGroup({})}><Plus size={18} /> Title qo'shish</button>
+            <button className="btn" disabled={isAll} title={isAll ? "Aniq do'kon tanlang" : ""} onClick={() => setEditGroup({})}><Plus size={18} /> Title qo'shish</button>
           </div>
 
           {err ? <ErrorRetry onRetry={reload} /> : loading ? <TableSkeleton cols={3} /> : (
@@ -502,8 +529,8 @@ export default function ProductsPage() {
                     <td className="td">{categories.filter((c) => c.group_id === g.id).length}</td>
                     <td className="td text-right">
                       <div className="inline-flex items-center gap-1">
-                        <button className="icon-btn" title="Tahrirlash" onClick={() => setEditGroup(g)}><Pencil size={16} /></button>
-                        <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => removeGroup(g)}><Trash2 size={16} /></button>
+                        <button className="icon-btn" disabled={isAll} title={isAll ? "Aniq do'kon tanlang" : "Tahrirlash"} onClick={() => setEditGroup(g)}><Pencil size={16} /></button>
+                        <button className="icon-btn hover:text-red-600" disabled={isAll} title={isAll ? "Aniq do'kon tanlang" : "O'chirish"} onClick={() => removeGroup(g)}><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>
@@ -524,7 +551,7 @@ export default function ProductsPage() {
       {tab === "categories" && (
         <>
           <div className="flex justify-end mb-4">
-            <button className="btn" onClick={() => setEditCat({})}><Plus size={18} /> Kategoriya qo'shish</button>
+            <button className="btn" disabled={isAll} title={isAll ? "Aniq do'kon tanlang" : ""} onClick={() => setEditCat({})}><Plus size={18} /> Kategoriya qo'shish</button>
           </div>
 
           {err ? <ErrorRetry onRetry={reload} /> : loading ? <TableSkeleton cols={3} /> : (
@@ -555,8 +582,8 @@ export default function ProductsPage() {
                     <td className="td">{categories.filter((c) => c.parent_id === top.id).length}</td>
                     <td className="td text-right">
                       <div className="inline-flex items-center gap-1">
-                        <button className="icon-btn" title="Tahrirlash" onClick={() => setEditCat(top)}><Pencil size={16} /></button>
-                        <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => removeCat(top)}><Trash2 size={16} /></button>
+                        <button className="icon-btn" disabled={isAll} title={isAll ? "Aniq do'kon tanlang" : "Tahrirlash"} onClick={() => setEditCat(top)}><Pencil size={16} /></button>
+                        <button className="icon-btn hover:text-red-600" disabled={isAll} title={isAll ? "Aniq do'kon tanlang" : "O'chirish"} onClick={() => removeCat(top)}><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>

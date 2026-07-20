@@ -9,6 +9,8 @@ TEXTS = {
             "Buyurtma berish uchun pastdagi tugmani bosing 👇"
         ),
         "open_app": "🍽 Ilovani ochish",
+        "start_shopping": "🛒 Xaridni boshlash",
+        "start_shopping_prompt": "Xarid qilishni boshlash uchun tugmani bosing 👇",
         "menu": "📋 Menyu",
         "orders": "🧾 Buyurtmalarim",
         "profile": "👤 Profilim",
@@ -34,6 +36,8 @@ TEXTS = {
             "Нажмите кнопку ниже, чтобы заказать 👇"
         ),
         "open_app": "🍽 Открыть приложение",
+        "start_shopping": "🛒 Начать покупки",
+        "start_shopping_prompt": "Нажмите кнопку, чтобы начать покупки 👇",
         "menu": "📋 Меню",
         "orders": "🧾 Мои заказы",
         "profile": "👤 Мой профиль",

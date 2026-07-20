@@ -1,5 +1,6 @@
 from datetime import datetime
 
+# pyrefly: ignore [missing-import]
 from pydantic import BaseModel, Field
 
 from app.models.enums import OrderStatus, PaymentMethod, PaymentStatus
@@ -87,7 +88,6 @@ class OrderOut(BaseModel):
 
 class OrderStatusUpdate(BaseModel):
     status: OrderStatus
-    courier_id: int | None = None
     assigned_courier_id: int | None = None
 
 

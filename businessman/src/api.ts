@@ -48,6 +48,14 @@ export function withStore(path: string, storeId: number): string {
   return `${path}${sep}restaurant_id=${storeId}`;
 }
 
+// "Barcha do'konlar" ko'rinishi — har bir do'kon uchun alohida so'rov, natijalar
+// birlashtiriladi. Backend bitta do'kon bo'yicha ishlaydi, shu tashqi qatlam
+// ko'p do'konni jamlaydi.
+export async function getAll<T>(path: string, storeIds: number[]): Promise<T[]> {
+  const lists = await Promise.all(storeIds.map((id) => get<T[]>(withStore(path, id))));
+  return lists.flat();
+}
+
 // Rasm faylini yuklash (multipart). Content-Type ni brauzer o'zi qo'yadi.
 export async function uploadImage(file: File): Promise<string> {
   const form = new FormData();

@@ -3,9 +3,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { get } from "../api";
 import { useAuth, useStore } from "../store";
-import type { Store as StoreT } from "../types";
 
 const links = [
   { to: "/", label: "Umumiy", icon: LayoutDashboard, end: true },
@@ -21,20 +19,14 @@ const links = [
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { business, logout } = useAuth();
-  const { selectedStoreId, setSelectedStore } = useStore();
+  const { selectedStoreId, setSelectedStore, stores, loadStores } = useStore();
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
-  const [stores, setStores] = useState<StoreT[]>([]);
 
   // Do'konlar ro'yxati — header'dagi switcher uchun. Backend hali tayyor
-  // bo'lmasligi mumkin (404), shu holda bo'sh qoldiramiz, ilova ishlayveradi.
+  // bo'lmasligi mumkin (404), shu holda xato bosib o'tiladi, ilova ishlayveradi.
   useEffect(() => {
-    get<StoreT[]>("/business/stores")
-      .then((data) => {
-        setStores(data);
-        if (data.length && !data.some((s) => s.id === selectedStoreId)) setSelectedStore(data[0].id);
-      })
-      .catch(() => setStores([]));
+    loadStores().catch(() => {});
     // faqat bir marta — mount'da
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -50,9 +42,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <select
               className="input py-1.5 max-w-[200px]"
               value={selectedStoreId ?? ""}
-              onChange={(e) => setSelectedStore(Number(e.target.value))}
+              onChange={(e) => setSelectedStore(e.target.value === "all" ? "all" : Number(e.target.value))}
               aria-label="Do'kon tanlash"
             >
+              {stores.length > 1 && <option value="all">Barcha do'konlar</option>}
               {stores.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}

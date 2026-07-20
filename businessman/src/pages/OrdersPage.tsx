@@ -1,7 +1,7 @@
 import { ChevronDown, MapPin, Phone, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { get, patch, withStore } from "../api";
+import { get, getAll, patch, withStore } from "../api";
 import { confirm } from "../components/Confirm";
 import { ErrorRetry, TableSkeleton } from "../components/Skeleton";
 import { useStore } from "../store";
@@ -30,6 +30,9 @@ const money = (n: number) => n.toLocaleString("ru-RU").replace(/,/g, " ");
 
 export default function OrdersPage() {
   const selectedStoreId = useStore((s) => s.selectedStoreId);
+  const stores = useStore((s) => s.stores);
+  const isAll = selectedStoreId === "all";
+  const storeName = (rid: number) => stores.find((s) => s.id === rid)?.name ?? "—";
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<OrderStatus | "">("");
   const [loading, setLoading] = useState(true);
@@ -44,7 +47,10 @@ export default function OrdersPage() {
     inFlight.current = true;
     const q = filter ? `?status_filter=${filter}` : "";
     try {
-      const d = await get<Order[]>(withStore(`/admin/orders${q}`, selectedStoreId));
+      const d = isAll
+        ? await getAll<Order>(`/admin/orders${q}`, stores.map((s) => s.id))
+        : await get<Order[]>(withStore(`/admin/orders${q}`, selectedStoreId));
+      d.sort((a, b) => b.created_at.localeCompare(a.created_at));
       setOrders(d);
       setErr(false);
     } catch {
@@ -62,7 +68,7 @@ export default function OrdersPage() {
     const iv = setInterval(load, 15000);
     return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, selectedStoreId]);
+  }, [filter, selectedStoreId, stores.length]);
 
   const cancel = async (o: Order) => {
     const ok = await confirm({
@@ -72,13 +78,13 @@ export default function OrdersPage() {
       cancelText: "Yo'q",
       danger: true,
     });
-    if (!ok || selectedStoreId == null) return;
+    if (!ok) return;
 
     const prev = orders;
     setBusy(o.id);
     setOrders((os) => os.map((x) => (x.id === o.id ? { ...x, status: "cancelled" } : x)));
     try {
-      await patch(withStore(`/admin/orders/${o.id}`, selectedStoreId), { status: "cancelled" });
+      await patch(withStore(`/admin/orders/${o.id}`, o.restaurant_id), { status: "cancelled" });
       toast.success(`№ ${o.number}: bekor qilindi`);
     } catch {
       setOrders(prev);
@@ -125,6 +131,7 @@ export default function OrdersPage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold">№ {o.number}</span>
                   <span className={`pill ${PILL[o.status]}`}>{LABEL[o.status]}</span>
+                  {isAll && <span className="pill bg-slate-100 text-slate-600">{storeName(o.restaurant_id)}</span>}
                 </div>
                 <div className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
                   <MapPin size={14} className="shrink-0" /> {o.address_line}

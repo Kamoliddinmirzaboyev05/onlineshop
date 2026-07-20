@@ -132,6 +132,7 @@ export interface SupplyRecord {
   id: number;
   product_id: number;
   product_name: string;
+  restaurant_id: number;
   supplier_name: string;
   quantity: number;
   unit: string;

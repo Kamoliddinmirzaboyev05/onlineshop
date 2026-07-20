@@ -16,7 +16,7 @@ router = Router()
 def main_menu(lang: str) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=t(lang, "open_app"), web_app=WebAppInfo(url=settings.tma_url))],
+            [KeyboardButton(text=t(lang, "open_app"))],
             [
                 # Profil — to'g'ridan-to'g'ri ilovaning /profile sahifasini ochadi.
                 KeyboardButton(
@@ -72,6 +72,18 @@ async def on_lang_btn(message: Message) -> None:
 async def on_help_btn(message: Message) -> None:
     user = repo.get_or_create_user(message.from_user.id, message.from_user.first_name, message.from_user.username)
     await message.answer(t(user.language, "help_text"))
+
+
+@router.message(F.text.in_(_btn_texts("open_app")))
+async def on_open_app_btn(message: Message) -> None:
+    user = repo.get_or_create_user(message.from_user.id, message.from_user.first_name, message.from_user.username)
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(
+            text=t(user.language, "start_shopping"),
+            web_app=WebAppInfo(url=settings.tma_url),
+        )]]
+    )
+    await message.answer(t(user.language, "start_shopping_prompt"), reply_markup=kb)
 
 
 @router.message(F.text.in_(_btn_texts("orders")))

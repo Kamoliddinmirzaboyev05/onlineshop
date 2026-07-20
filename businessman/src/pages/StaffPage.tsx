@@ -2,7 +2,7 @@ import { CircleCheck, CircleX, Plus, PowerOff, Store, Trash2, Users } from "luci
 import PasswordInput from "../components/PasswordInput";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { del, get, patch, post, withStore } from "../api";
+import { del, get, getAll, patch, post, withStore } from "../api";
 import { confirm } from "../components/Confirm";
 import { TableSkeleton } from "../components/Skeleton";
 import { useStore } from "../store";
@@ -21,32 +21,38 @@ const ROLE_PILL: Record<string, string> = {
 
 export default function StaffPage() {
   const storeId = useStore((s) => s.selectedStoreId);
+  const stores = useStore((s) => s.stores);
+  const isAll = storeId === "all";
+  const storeName = (rid: number) => stores.find((s) => s.id === rid)?.name ?? "—";
   const [staff, setStaff] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState<{ username: string; password: string; role: "manager" | "courier" } | null>(null);
+  const [form, setForm] = useState<{ username: string; password: string; role: "manager" | "courier"; restaurant_id: number } | null>(null);
   const [err, setErr] = useState("");
 
-  const load = async (id: number) => {
+  const load = async () => {
+    if (storeId == null) return;
     setLoading(true);
     try {
-      setStaff(await get<StaffUser[]>(withStore("/admin/admin-users", id)));
+      setStaff(
+        isAll
+          ? await getAll<StaffUser>("/admin/admin-users", stores.map((s) => s.id))
+          : await get<StaffUser[]>(withStore("/admin/admin-users", storeId))
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (storeId != null) load(storeId);
-  }, [storeId]);
+  useEffect(() => { load(); }, [storeId, stores.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const save = async () => {
-    if (storeId == null || !form || !form.username.trim() || !form.password.trim()) return;
+    if (!form || !form.username.trim() || !form.password.trim()) return;
     setErr("");
     try {
-      await post(withStore("/admin/admin-users", storeId), form);
+      await post(withStore("/admin/admin-users", form.restaurant_id), form);
       setForm(null);
       toast.success("Xodim yaratildi");
-      load(storeId);
+      load();
     } catch (e) {
       if (String(e).includes("409")) {
         setErr("Bu username band");
@@ -58,18 +64,16 @@ export default function StaffPage() {
   };
 
   const toggle = async (u: StaffUser) => {
-    if (storeId == null) return;
     try {
-      await patch(withStore(`/admin/admin-users/${u.id}/toggle`, storeId), {});
+      await patch(withStore(`/admin/admin-users/${u.id}/toggle`, u.restaurant_id), {});
       toast.success(u.is_active ? "Xodim bloklandi" : "Xodim aktivlashtirildi");
-      load(storeId);
+      load();
     } catch {
       toast.error("Amalni bajarib bo'lmadi");
     }
   };
 
   const remove = async (u: StaffUser) => {
-    if (storeId == null) return;
     const ok = await confirm({
       title: `"${u.username}" xodimni o'chirasizmi?`,
       message: "Bu akkaunt butunlay o'chiriladi.",
@@ -78,9 +82,9 @@ export default function StaffPage() {
     });
     if (!ok) return;
     try {
-      await del(withStore(`/admin/admin-users/${u.id}`, storeId));
+      await del(withStore(`/admin/admin-users/${u.id}`, u.restaurant_id));
       toast.success("Xodim o'chirildi");
-      load(storeId);
+      load();
     } catch {
       toast.error("O'chirib bo'lmadi");
     }
@@ -106,7 +110,7 @@ export default function StaffPage() {
       <div className="flex justify-end mb-4">
         <button
           className="btn"
-          onClick={() => { setErr(""); setForm({ username: "", password: "", role: "courier" }); }}
+          onClick={() => { setErr(""); setForm({ username: "", password: "", role: "courier", restaurant_id: isAll ? stores[0]?.id ?? 0 : (storeId as number) }); }}
         >
           <Plus size={18} /> Yangi xodim
         </button>
@@ -119,6 +123,7 @@ export default function StaffPage() {
               <tr className="bg-slate-50">
                 <th className="th">Login</th>
                 <th className="th">Rol</th>
+                {isAll && <th className="th">Do'kon</th>}
                 <th className="th">Holat</th>
                 <th className="th"></th>
               </tr>
@@ -139,6 +144,7 @@ export default function StaffPage() {
                       {ROLE_LABEL[u.role] ?? u.role}
                     </span>
                   </td>
+                  {isAll && <td className="td text-slate-500">{storeName(u.restaurant_id)}</td>}
                   <td className="td">
                     {u.is_active
                       ? <span className="pill bg-emerald-100 text-emerald-700">Faol</span>
@@ -166,7 +172,7 @@ export default function StaffPage() {
               ))}
               {staff.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="td text-center text-slate-400 py-10">
+                  <td colSpan={isAll ? 5 : 4} className="td text-center text-slate-400 py-10">
                     <Users size={28} className="mx-auto mb-2 opacity-30" />
                     Hali xodim yo'q — "Yangi xodim" tugmasini bosing
                   </td>
@@ -181,6 +187,21 @@ export default function StaffPage() {
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="card p-6 w-96 space-y-4">
             <h2 className="font-bold text-lg">Yangi xodim</h2>
+
+            {isAll && (
+              <label className="block">
+                <span className="text-xs text-slate-500">Do'kon</span>
+                <select
+                  className="input mt-1"
+                  value={form.restaurant_id}
+                  onChange={(e) => setForm({ ...form, restaurant_id: Number(e.target.value) })}
+                >
+                  {stores.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
 
             <label className="block">
               <span className="text-xs text-slate-500">Login</span>

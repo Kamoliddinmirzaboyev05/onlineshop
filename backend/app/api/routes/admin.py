@@ -594,6 +594,7 @@ def list_users(
 def _supply_out(s: SupplyRecord) -> SupplyRecordOut:
     d = SupplyRecordOut.model_validate(s)
     d.product_name = s.product.name_uz if s.product else ""
+    d.restaurant_id = s.product.restaurant_id if s.product else 0
     return d
 
 

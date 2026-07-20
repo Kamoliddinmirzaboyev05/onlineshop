@@ -16,6 +16,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const UNITS = ["kg", "litr", "dona", "quti", "paket", "gramm"];
 
 type SupplyForm = {
+  restaurant_id: number;
   product_id: number;
   supplier_name: string;
   quantity: number;
@@ -27,11 +28,14 @@ type SupplyForm = {
 
 export default function WarehousePage() {
   const storeId = useStore((s) => s.selectedStoreId);
+  const stores = useStore((s) => s.stores);
+  const isAll = storeId === "all";
+  const storeName = (rid: number) => stores.find((s) => s.id === rid)?.name ?? "—";
   const [products, setProducts] = useState<Product[]>([]);
   const [supplies, setSupplies] = useState<SupplyRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(false);
-  const [edit, setEdit] = useState<{ id: number; name: string; stock: number; threshold: number; unit: string } | null>(null);
+  const [edit, setEdit] = useState<{ id: number; restaurant_id: number; name: string; stock: number; threshold: number; unit: string } | null>(null);
   const [form, setForm] = useState<SupplyForm | null>(null);
 
   const load = async (sid: number) => {
@@ -50,29 +54,46 @@ export default function WarehousePage() {
     }
   };
 
+  const loadAll = async () => {
+    setErr(false);
+    try {
+      const [prodLists, supLists] = await Promise.all([
+        Promise.all(stores.map((s) => get<Product[]>(withStore(`/admin/restaurants/${s.id}/products`, s.id)))),
+        Promise.all(stores.map((s) => get<SupplyRecord[]>(withStore("/admin/supplies", s.id)))),
+      ]);
+      setProducts(prodLists.flat());
+      setSupplies(supLists.flat());
+    } catch {
+      setErr(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const reload = () => {
     if (storeId == null) return;
     setLoading(true);
-    load(storeId);
+    isAll ? loadAll() : load(storeId);
   };
 
   useEffect(() => {
     if (storeId == null) return;
     setLoading(true);
-    load(storeId);
-  }, [storeId]);
+    isAll ? loadAll() : load(storeId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId, stores.length]);
 
   const saveStock = async () => {
-    if (!edit || storeId == null) return;
+    if (!edit) return;
     try {
-      await patch(withStore(`/admin/products/${edit.id}/stock`, storeId), {
+      await patch(withStore(`/admin/products/${edit.id}/stock`, edit.restaurant_id), {
         stock: edit.stock,
         low_stock_threshold: edit.threshold,
       });
       const name = edit.name;
       setEdit(null);
       toast.success(`"${name}" qoldig'i yangilandi`);
-      load(storeId);
+      reload();
     } catch {
       toast.error("Saqlab bo'lmadi");
     }
@@ -80,8 +101,10 @@ export default function WarehousePage() {
 
   const openForm = () => {
     if (!products.length) return;
+    const rid = isAll ? products[0].restaurant_id : (storeId as number);
     setForm({
-      product_id: products[0].id,
+      restaurant_id: rid,
+      product_id: products.find((p) => p.restaurant_id === rid)?.id ?? products[0].id,
       supplier_name: "",
       quantity: 1,
       unit: "kg",
@@ -92,22 +115,22 @@ export default function WarehousePage() {
   };
 
   const saveSupply = async () => {
-    if (!form || storeId == null || !form.supplier_name.trim()) return;
+    if (!form || !form.supplier_name.trim()) return;
     try {
-      await post(withStore("/admin/supplies", storeId), {
-        ...form,
+      const { restaurant_id, ...body } = form;
+      await post(withStore("/admin/supplies", restaurant_id), {
+        ...body,
         notes: form.notes || null,
       });
       setForm(null);
       toast.success("Yetkazib berish qo'shildi");
-      load(storeId);
+      reload();
     } catch {
       toast.error("Saqlab bo'lmadi");
     }
   };
 
   const removeSupply = async (r: SupplyRecord) => {
-    if (storeId == null) return;
     const ok = await confirm({
       title: "Yozuvni o'chirasizmi?",
       message: `${r.product_name} — ${r.supplier_name}. Ombor qoldig'i tegishli miqdorga kamayadi.`,
@@ -116,9 +139,9 @@ export default function WarehousePage() {
     });
     if (!ok) return;
     try {
-      await del(withStore(`/admin/supplies/${r.id}`, storeId));
+      await del(withStore(`/admin/supplies/${r.id}`, r.restaurant_id));
       toast.success("Yozuv o'chirildi");
-      load(storeId);
+      reload();
     } catch {
       toast.error("O'chirib bo'lmadi");
     }
@@ -162,6 +185,7 @@ export default function WarehousePage() {
           <thead>
             <tr className="bg-slate-50">
               <th className="th">Mahsulot</th>
+              {isAll && <th className="th">Do'kon</th>}
               <th className="th">Qoldiq</th>
               <th className="th">Birlik</th>
               <th className="th">Chegara</th>
@@ -184,6 +208,7 @@ export default function WarehousePage() {
                       {p.name_uz}
                     </div>
                   </td>
+                  {isAll && <td className="td text-slate-500">{storeName(p.restaurant_id)}</td>}
                   <td className="td">
                     <span className={isOut ? "text-rose-600 font-bold" : isLow ? "text-amber-600 font-semibold" : "font-medium"}>{p.stock}</span>
                   </td>
@@ -199,7 +224,7 @@ export default function WarehousePage() {
                   </td>
                   <td className="td text-right">
                     <button className="btn-ghost !py-1.5 !px-3 text-sm"
-                      onClick={() => setEdit({ id: p.id, name: p.name_uz, stock: p.stock, threshold: p.low_stock_threshold, unit: p.unit ?? "dona" })}>
+                      onClick={() => setEdit({ id: p.id, restaurant_id: p.restaurant_id, name: p.name_uz, stock: p.stock, threshold: p.low_stock_threshold, unit: p.unit ?? "dona" })}>
                       <PackagePlus size={15} /> Qoldiq
                     </button>
                   </td>
@@ -207,7 +232,7 @@ export default function WarehousePage() {
               );
             })}
             {products.length === 0 && (
-              <tr><td colSpan={7} className="td text-center text-slate-400 py-10">Mahsulot yo'q</td></tr>
+              <tr><td colSpan={isAll ? 8 : 7} className="td text-center text-slate-400 py-10">Mahsulot yo'q</td></tr>
             )}
           </tbody>
         </table>
@@ -238,6 +263,7 @@ export default function WarehousePage() {
               <tr className="bg-slate-50">
                 <th className="th">Sana</th>
                 <th className="th">Mahsulot</th>
+                {isAll && <th className="th">Do'kon</th>}
                 <th className="th">Yetkazuvchi</th>
                 <th className="th">Miqdor</th>
                 <th className="th">Narx/birlik</th>
@@ -251,6 +277,7 @@ export default function WarehousePage() {
                 <tr key={r.id} className="hover:bg-slate-50/60">
                   <td className="td text-slate-500 text-sm">{r.supply_date}</td>
                   <td className="td font-medium text-slate-900">{r.product_name}</td>
+                  {isAll && <td className="td text-slate-500">{storeName(r.restaurant_id)}</td>}
                   <td className="td">
                     <span className="flex items-center gap-1.5">
                       <TruckIcon size={14} className="text-slate-400" />
@@ -274,7 +301,7 @@ export default function WarehousePage() {
               ))}
               {supplies.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="td text-center text-slate-400 py-10">
+                  <td colSpan={isAll ? 9 : 8} className="td text-center text-slate-400 py-10">
                     Hali yetkazib berish yozuvi yo'q
                   </td>
                 </tr>
@@ -330,6 +357,25 @@ export default function WarehousePage() {
           <div className="card p-6 w-[28rem] max-h-[90vh] overflow-auto space-y-3">
             <h2 className="font-bold text-lg">Yangi yetkazib berish</h2>
 
+            {isAll && (
+              <label className="block">
+                <span className="text-xs text-slate-500">Do'kon</span>
+                <select
+                  className="input mt-1"
+                  value={form.restaurant_id}
+                  onChange={(e) => {
+                    const rid = Number(e.target.value);
+                    const firstProduct = products.find((p) => p.restaurant_id === rid);
+                    setForm({ ...form, restaurant_id: rid, product_id: firstProduct?.id ?? form.product_id });
+                  }}
+                >
+                  {stores.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+
             <label className="block">
               <span className="text-xs text-slate-500">Mahsulot</span>
               <select
@@ -337,7 +383,7 @@ export default function WarehousePage() {
                 value={form.product_id}
                 onChange={(e) => setForm({ ...form, product_id: +e.target.value })}
               >
-                {products.map((p) => (
+                {products.filter((p) => p.restaurant_id === form.restaurant_id).map((p) => (
                   <option key={p.id} value={p.id}>{p.name_uz}</option>
                 ))}
               </select>
