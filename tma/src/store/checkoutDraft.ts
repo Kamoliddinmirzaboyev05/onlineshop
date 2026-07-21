@@ -11,9 +11,8 @@ interface CheckoutDraftState {
   reset: () => void;
 }
 
-/** Checkout formasi qoralamasi — /checkout/location sahifasiga o'tib
- * qaytganda ham (CheckoutPage qayta unmount bo'lsa ham) yo'qolmasligi uchun
- * global store'da saqlanadi. */
+/** Checkout formasi qoralamasi (telefon, izoh, TMA ochilishida avtomatik
+ * aniqlangan joylashuv). */
 export const useCheckoutDraft = create<CheckoutDraftState>((set) => ({
   phone: "",
   comment: "",

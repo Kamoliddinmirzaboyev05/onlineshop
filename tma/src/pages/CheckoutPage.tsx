@@ -1,10 +1,10 @@
-import { ChevronRight, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../api/client";
+import { api, getCoords } from "../api/client";
 import PageHeader from "../components/PageHeader";
 import { useI18n } from "../i18n";
 import { formatUzPhone, money } from "../lib/format";
+import { reverseGeocode } from "../lib/geocode";
 import { useAuth } from "../store/auth";
 import { useCart } from "../store/cart";
 import { useCheckoutDraft } from "../store/checkoutDraft";
@@ -31,7 +31,7 @@ export default function CheckoutPage() {
   const cart = useCart();
   const user = useAuth((s) => s.user);
 
-  const { phone, comment, loc, address, setPhone, setComment, reset: resetDraft } = useCheckoutDraft();
+  const { phone, comment, loc, address, setPhone, setComment, setLocation, reset: resetDraft } = useCheckoutDraft();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +40,23 @@ export default function CheckoutPage() {
     if (!phone && user?.phone) setPhone(formatUzPhone(user.phone));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.phone]);
+
+  // Yetkazib berish manzili sifatida TMA ochilishida aniqlangan joylashuv
+  // jim ishlatiladi — checkoutda qayta so'ralmaydi, qo'lda tanlash yo'q.
+  const fetchLocation = () =>
+    getCoords().then((coords) => {
+      if (!coords) return null;
+      return reverseGeocode(coords.lat, coords.lng).then((a) => {
+        const addr = a ?? `📍 ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+        setLocation(coords.lat, coords.lng, addr);
+        return { ...coords, address: addr };
+      });
+    });
+
+  useEffect(() => {
+    if (!loc) fetchLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const lines = Object.values(cart.lines);
 
@@ -52,8 +69,16 @@ export default function CheckoutPage() {
       setError(lang === "uz" ? "Telefon raqamini to'liq kiriting" : "Введите номер телефона полностью");
       return;
     }
-    if (!loc) {
-      setError(lang === "uz" ? "Yetkazib berish manzilini belgilang" : "Укажите адрес доставки");
+    let deliveryLoc = loc;
+    if (!deliveryLoc) {
+      deliveryLoc = await fetchLocation();
+    }
+    if (!deliveryLoc) {
+      setError(
+        lang === "uz"
+          ? "Joylashuvni aniqlab bo'lmadi. Telegram sozlamalaridan geolokatsiyaga ruxsat bering va qayta urinib ko'ring"
+          : "Не удалось определить местоположение. Разрешите геолокацию в настройках Telegram и попробуйте снова"
+      );
       return;
     }
     setSubmitting(true);
@@ -66,8 +91,8 @@ export default function CheckoutPage() {
           quantity: l.quantity,
         })),
         address_line: address || undefined,
-        lat: loc.lat,
-        lng: loc.lng,
+        lat: deliveryLoc.lat,
+        lng: deliveryLoc.lng,
         phone,
         comment,
         payment_method: "cash",
@@ -91,24 +116,6 @@ export default function CheckoutPage() {
       <PageHeader title={t.checkout} back />
 
       <div className="p-4 space-y-5 bg-white">
-        <button
-          onClick={() => nav("/checkout/location")}
-          className="w-full flex items-center gap-4 bg-[#F4F5F7] rounded-[20px] p-3 text-left active:scale-[0.98] transition"
-        >
-          <div className="h-[50px] w-[50px] shrink-0 rounded-[16px] bg-[#FFF0E5] flex items-center justify-center text-[#FF6B00]">
-            <MapPin size={24} fill="currentColor" strokeWidth={1.5} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-bold text-slate-900 leading-tight mb-1">
-              {lang === "uz" ? "Yetkazib berish manzili" : "Адрес доставки"}
-            </p>
-            <p className="text-[13px] text-slate-400 truncate">
-              {address || (lang === "uz" ? "Manzilni belgilash uchun bosing" : "Нажмите, чтобы указать адрес")}
-            </p>
-          </div>
-          <ChevronRight size={20} className="text-slate-400 shrink-0 mr-1" />
-        </button>
-
         <div className="space-y-2">
           <label className="text-[13px] text-slate-400 font-medium px-1">{t.phone}</label>
           <input

@@ -18,18 +18,24 @@ export function setToken(t: string) {
 }
 
 // Qurilma joylashuvi — sessiya davomida bir marta so'raladi va keshlanadi,
-// har sahifada qayta ruxsat so'ralmasligi uchun. Doim yangi qiymat (localStorage'da
-// saqlanmaydi) — foydalanuvchi boshqa hududdan buyurtma bersa, eskirgan joylashuv
-// bilan noto'g'ri do'kon tanlanmasligi kerak.
+// har sahifada (va checkoutda ham) qayta ruxsat so'ralmasligi uchun. Doim yangi
+// qiymat (localStorage'da saqlanmaydi) — foydalanuvchi boshqa hududdan buyurtma
+// bersa, eskirgan joylashuv bilan noto'g'ri do'kon tanlanmasligi kerak.
 let coordsCache: { lat: number; lng: number } | null | undefined;
+// So'rov havoda turganda (App ochilishi bilan bitta, Home yana bitta chaqirsa)
+// ikkinchi marta getCurrentPosition chaqirilmasligi uchun.
+let coordsPromise: Promise<{ lat: number; lng: number } | null> | null = null;
 
-function getCoords(): Promise<{ lat: number; lng: number } | null> {
+// TMA ochilishi bilan (App.tsx) va checkout paytida (CheckoutPage) ham shu
+// funksiya chaqiriladi — natija keshlangani uchun ikkinchisi darhol qaytadi.
+export function getCoords(): Promise<{ lat: number; lng: number } | null> {
   if (coordsCache !== undefined) return Promise.resolve(coordsCache);
+  if (coordsPromise) return coordsPromise;
   if (!navigator.geolocation) {
     coordsCache = null;
     return Promise.resolve(null);
   }
-  return new Promise((resolve) => {
+  coordsPromise = new Promise<{ lat: number; lng: number } | null>((resolve) => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         coordsCache = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -41,7 +47,10 @@ function getCoords(): Promise<{ lat: number; lng: number } | null> {
       },
       { enableHighAccuracy: true, timeout: 5000 }
     );
+  }).finally(() => {
+    coordsPromise = null;
   });
+  return coordsPromise;
 }
 
 // Foydalanuvchi xaritadan qo'lda manzil tanlaganda (LocationConfirmSheet) chaqiriladi —
