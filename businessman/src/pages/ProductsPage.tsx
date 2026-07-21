@@ -329,7 +329,7 @@ export default function ProductsPage() {
       <h1 className="text-2xl font-bold tracking-tight mb-1">Mahsulotlar</h1>
       <p className="text-slate-500 mb-5">Mahsulotlar va kategoriyalarni boshqarish.</p>
 
-      <div className="flex gap-2 mb-5">
+      <div className="flex gap-2 mb-5 flex-wrap">
         <button
           className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${tab === "products" ? "bg-brand text-white shadow-sm" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
           onClick={() => setTab("products")}
@@ -351,19 +351,19 @@ export default function ProductsPage() {
       {/* ── PRODUCTS ─────────────────────────────────────── */}
       {tab === "products" && (
         <>
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
-                  className="input w-56 pl-9"
+                  className="input w-full sm:w-56 pl-9"
                   placeholder="Mahsulot qidirish..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
               <select
-                className="input w-48"
+                className="input w-full sm:w-48"
                 value={filterCat}
                 onChange={(e) => setFilterCat(e.target.value === "all" ? "all" : +e.target.value)}
               >
@@ -374,7 +374,7 @@ export default function ProductsPage() {
               </select>
             </div>
             <button
-              className="btn"
+              className="btn justify-center"
               disabled={isAll || topCategories.length === 0}
               title={isAll ? "Aniq do'kon tanlang" : topCategories.length === 0 ? "Avval kategoriya qo'shing" : ""}
               onClick={() => {

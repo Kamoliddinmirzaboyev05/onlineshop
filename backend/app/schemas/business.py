@@ -88,6 +88,8 @@ class StoreBreakdown(BaseModel):
     revenue: int   # aylanma
     cost: int      # harajat (tannarx)
     profit: int
+    product_count: int = 0        # faol mahsulot turlari soni
+    top_product_name: str | None = None   # eng ko'p sotilgan mahsulot (barcha vaqt)
 
 
 class BusinessStatsOut(BaseModel):

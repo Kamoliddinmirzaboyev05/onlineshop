@@ -4,6 +4,7 @@ import {
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth, useStore } from "../store";
+import BottomNav from "./BottomNav";
 
 const links = [
   { to: "/", label: "Umumiy", icon: LayoutDashboard, end: true },
@@ -117,7 +118,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="md:ml-64 p-4 md:p-8 overflow-x-hidden">{children}</main>
+      <main className="md:ml-64 p-4 pb-24 md:p-8 overflow-x-hidden">{children}</main>
+
+      <BottomNav onMore={() => setOpen(true)} />
     </div>
   );
 }

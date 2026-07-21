@@ -173,6 +173,8 @@ export interface StoreBreakdown {
   revenue: number;
   cost: number;
   profit: number;
+  product_count: number;
+  top_product_name?: string | null;
 }
 
 // Tadbirkorning barcha do'konlari bo'yicha umumiy statistika.

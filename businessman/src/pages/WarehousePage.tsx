@@ -354,7 +354,7 @@ export default function WarehousePage() {
       {/* ── SUPPLY FORM MODAL ────────────────────────────── */}
       {form && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="card p-6 w-[28rem] max-h-[90vh] overflow-auto space-y-3">
+          <div className="card p-6 w-[28rem] max-w-full max-h-[90vh] overflow-auto space-y-3">
             <h2 className="font-bold text-lg">Yangi yetkazib berish</h2>
 
             {isAll && (

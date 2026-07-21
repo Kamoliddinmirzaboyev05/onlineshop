@@ -1,11 +1,15 @@
-import { CircleCheck, CircleX, Pencil, Plus, Store, Trash2 } from "lucide-react";
+import { BarChart3, CircleCheck, CircleX, Clock, MapPin, Pencil, Plus, Star, Store, Trash2, Truck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { del, get, post, put } from "../api";
+import { del, get, post, put, withStore } from "../api";
 import { confirm } from "../components/Confirm";
 import PasswordInput from "../components/PasswordInput";
-import { TableSkeleton } from "../components/Skeleton";
-import type { Store as StoreT, StoreInput, StoreWithStaffInput } from "../types";
+import { Skeleton } from "../components/Skeleton";
+import TrendChart from "../components/TrendChart";
+import type {
+  BusinessReports, PeriodPoint, Store as StoreT, StoreBreakdown, StoreInput,
+  StoreWithStaffInput, TopProduct,
+} from "../types";
 
 const money = (n: number) => n.toLocaleString("ru-RU").replace(/,/g, " ");
 
@@ -34,6 +38,9 @@ const emptyCreate: StoreWithStaffInput = {
 
 export default function StoresPage() {
   const [stores, setStores] = useState<StoreT[]>([]);
+  const [statsMap, setStatsMap] = useState<Record<number, StoreBreakdown>>({});
+  const [trendMap, setTrendMap] = useState<Record<number, PeriodPoint[]>>({});
+  const [topMap, setTopMap] = useState<Record<number, TopProduct[]>>({});
   const [loading, setLoading] = useState(true);
   const [editId, setEditId] = useState<number | null>(null); // null = yopiq, 0 = yangi
   const [form, setForm] = useState<StoreInput>(emptyEdit);
@@ -43,7 +50,33 @@ export default function StoresPage() {
   const load = async () => {
     setLoading(true);
     try {
-      setStores(await get<StoreT[]>("/business/stores"));
+      const [storeList, reports] = await Promise.all([
+        get<StoreT[]>("/business/stores"),
+        get<BusinessReports>("/business/reports").catch(() => null),
+      ]);
+      setStores(storeList);
+      if (reports) {
+        setStatsMap(Object.fromEntries(reports.stores.map((r) => [r.restaurant_id, r])));
+      }
+
+      // Har bir do'kon uchun o'z savdo dinamikasi (kunlik) va top mahsulotlari —
+      // /business/reports faqat biznes bo'ylab jamlangan qator beradi.
+      const perStore = await Promise.all(
+        storeList.map((s) =>
+          get<{ daily: PeriodPoint[]; top_products: TopProduct[] }>(withStore("/admin/reports", s.id)).catch(() => null)
+        )
+      );
+      const trend: Record<number, PeriodPoint[]> = {};
+      const top: Record<number, TopProduct[]> = {};
+      storeList.forEach((s, i) => {
+        const r = perStore[i];
+        if (r) {
+          trend[s.id] = r.daily;
+          top[s.id] = r.top_products.slice(0, 3);
+        }
+      });
+      setTrendMap(trend);
+      setTopMap(top);
     } finally {
       setLoading(false);
     }
@@ -136,56 +169,145 @@ export default function StoresPage() {
         </button>
       </div>
 
-      {loading ? <TableSkeleton cols={4} /> : (
-        <div className="card overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-slate-50">
-                <th className="th">Nomi</th>
-                <th className="th">Yetkazish</th>
-                <th className="th">Min. buyurtma</th>
-                <th className="th">Holati</th>
-                <th className="th"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {stores.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50/60">
-                  <td className="td font-medium text-slate-900">{s.name}</td>
-                  <td className="td">{money(s.delivery_fee)} so'm</td>
-                  <td className="td">{money(s.min_order)} so'm</td>
-                  <td className="td">
-                    <div className="flex flex-wrap gap-1">
+      {loading ? (
+        <div className="space-y-4">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="card p-5 lg:p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-12 w-12 rounded-xl" />
+                <div className="flex-1 space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-3 w-1/5" /></div>
+              </div>
+              <Skeleton className="h-32 w-full" />
+            </div>
+          ))}
+        </div>
+      ) : stores.length === 0 ? (
+        <div className="card p-10 text-center text-slate-400">
+          <Store size={28} className="mx-auto mb-2 opacity-30" />
+          Hali do'kon yo'q — "Yangi do'kon" tugmasini bosing
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {stores.map((s) => {
+            const stat = statsMap[s.id];
+            const trend = trendMap[s.id];
+            const top = topMap[s.id] ?? [];
+            return (
+              <div key={s.id} className="card p-5 lg:p-6">
+                <div className="flex flex-col lg:flex-row gap-6">
+                  {/* ── Identifikatsiya, holat, ko'rsatkichlar, sozlamalar ── */}
+                  <div className="lg:w-72 xl:w-80 shrink-0 lg:pr-6 lg:border-r lg:border-slate-100 space-y-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {s.logo_url
+                          ? <img src={s.logo_url} alt="" className="h-12 w-12 rounded-xl object-cover bg-slate-100 shrink-0" />
+                          : (
+                            <span className="grid place-items-center h-12 w-12 rounded-xl bg-brand/10 text-brand font-bold text-lg shrink-0 uppercase">
+                              {s.name[0]}
+                            </span>
+                          )}
+                        <div className="min-w-0">
+                          <div className="font-semibold text-slate-900 truncate">{s.name}</div>
+                          {s.address && (
+                            <div className="flex items-center gap-1 text-xs text-slate-400 truncate mt-0.5">
+                              <MapPin size={11} className="shrink-0" /> <span className="truncate">{s.address}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button className="icon-btn" title="Tahrirlash" onClick={() => openEdit(s)}>
+                          <Pencil size={15} />
+                        </button>
+                        <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => remove(s)}>
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
                       {s.is_active
                         ? <span className="pill bg-emerald-100 text-emerald-700">Faol</span>
                         : <span className="pill bg-slate-100 text-slate-500">Nofaol</span>}
                       {s.is_open
                         ? <span className="pill bg-sky-100 text-sky-700">Ochiq</span>
                         : <span className="pill bg-amber-100 text-amber-700">Yopiq</span>}
+                      {s.rating > 0 && (
+                        <span className="pill bg-amber-100 text-amber-700"><Star size={11} className="fill-amber-700" /> {s.rating.toFixed(1)}</span>
+                      )}
                     </div>
-                  </td>
-                  <td className="td text-right">
-                    <div className="inline-flex items-center gap-1">
-                      <button className="icon-btn" title="Tahrirlash" onClick={() => openEdit(s)}>
-                        <Pencil size={15} />
-                      </button>
-                      <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => remove(s)}>
-                        <Trash2 size={15} />
-                      </button>
+
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                      <div>
+                        <div className="text-xs text-slate-500">Buyurtmalar (30 kun)</div>
+                        <div className="text-lg font-bold mt-0.5">{stat ? stat.orders : "—"}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Mahsulot turlari</div>
+                        <div className="text-lg font-bold mt-0.5">{stat ? stat.product_count : "—"}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Aylanma (30 kun)</div>
+                        <div className="text-lg font-bold mt-0.5">{stat ? `${money(stat.revenue)} so'm` : "—"}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Foyda (30 kun)</div>
+                        <div className="text-lg font-bold mt-0.5 text-emerald-600">{stat ? `${money(stat.profit)} so'm` : "—"}</div>
+                      </div>
                     </div>
-                  </td>
-                </tr>
-              ))}
-              {stores.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="td text-center text-slate-400 py-10">
-                    <Store size={28} className="mx-auto mb-2 opacity-30" />
-                    Hali do'kon yo'q — "Yangi do'kon" tugmasini bosing
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+
+                    <div className="pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <div className="flex items-center justify-center gap-1 text-[11px] text-slate-400"><Truck size={11} /> Yetkazish</div>
+                        <div className="text-xs font-semibold text-slate-700 mt-0.5">{money(s.delivery_fee)} so'm</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-slate-400">Min. buyurtma</div>
+                        <div className="text-xs font-semibold text-slate-700 mt-0.5">{money(s.min_order)} so'm</div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-center gap-1 text-[11px] text-slate-400"><Clock size={11} /> Vaqt</div>
+                        <div className="text-xs font-semibold text-slate-700 mt-0.5">{s.avg_delivery_minutes} daq</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Savdo dinamikasi + eng ko'p sotilganlar ─────────── */}
+                  <div className="flex-1 min-w-0 space-y-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-3 font-semibold text-sm">
+                        <BarChart3 size={16} /> Savdo dinamikasi (30 kun)
+                      </div>
+                      {trend
+                        ? <TrendChart points={trend} compact />
+                        : <div className="text-center text-slate-400 py-10 text-sm">Yuklanmoqda...</div>}
+                    </div>
+
+                    {top.length > 0 && (
+                      <div className="pt-4 border-t border-slate-100">
+                        <div className="flex items-center gap-2 mb-3 font-semibold text-sm">
+                          <Star size={16} className="text-amber-500" /> Eng ko'p sotilganlar
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {top.map((t) => (
+                            <div key={t.product_id} className="flex items-center gap-2 min-w-0">
+                              {t.image_url
+                                ? <img src={t.image_url} alt="" className="h-8 w-8 rounded-lg object-cover bg-slate-100 shrink-0" />
+                                : <span className="h-8 w-8 rounded-lg bg-slate-100 shrink-0" />}
+                              <div className="min-w-0">
+                                <div className="text-xs font-medium truncate">{t.name_uz}</div>
+                                <div className="text-[11px] text-slate-400">{t.quantity} ta sotildi</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 

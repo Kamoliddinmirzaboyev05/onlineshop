@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_business
 from app.core.db import get_db
 from app.core.security import hash_password
-from app.models import AdminUser, Business, Order, Restaurant
+from app.models import AdminUser, Business, Order, Product, Restaurant
 from app.models.enums import AdminRole
 from app.schemas.business import (
     BusinessReportsOut, BusinessStatsOut, StoreBreakdown, StoreCreateIn,
@@ -161,9 +161,15 @@ def business_reports(
     breakdown: list[StoreBreakdown] = []
     for store in stores:
         orders, revenue, profit = _agg(db, [store.id], month_start)
+        product_count = db.scalar(
+            select(func.count(Product.id)).where(Product.restaurant_id == store.id)
+        ) or 0
+        top = _top_products(db, [store.id], limit=1)
         breakdown.append(StoreBreakdown(
             restaurant_id=store.id, name=store.name,
             orders=orders, revenue=revenue, cost=revenue - profit, profit=profit,
+            product_count=product_count,
+            top_product_name=top[0].name_uz if top else None,
         ))
 
     return BusinessReportsOut(
