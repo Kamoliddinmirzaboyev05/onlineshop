@@ -1,13 +1,14 @@
 import { motion } from "framer-motion";
-import { ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ChevronRight, MapPin } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, OutOfRangeError } from "../api/client";
-import type { Category, RestaurantDetail } from "../api/types";
+import type { Category } from "../api/types";
 import CartPill from "../components/CartPill";
 import { StoreListSkeleton } from "../components/Skeleton";
 import ErrorState from "../components/ErrorState";
+import LocationConfirmSheet from "../components/LocationConfirmSheet";
 import PageHeader from "../components/PageHeader";
+import { useStore } from "../hooks/useStore";
 import { loc, useI18n } from "../i18n";
 import { haptic } from "../telegram";
 
@@ -33,31 +34,8 @@ const card = {
 export default function HomePage() {
   const { t, lang } = useI18n();
   const nav = useNavigate();
-  const [store, setStore] = useState<RestaurantDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [outOfRange, setOutOfRange] = useState(false);
-
-  const load = () => {
-    setLoading(true);
-    setError(false);
-    setOutOfRange(false);
-    api
-      .store()
-      .then((s) => {
-        setStore(s);
-        setLoading(false);
-      })
-      .catch((e) => {
-        if (e instanceof OutOfRangeError) setOutOfRange(true);
-        else setError(true);
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
+  const { store, loading, error, outOfRange, needsLocation, reload, confirmLocation } = useStore();
+  const [pickingLocation, setPickingLocation] = useState(false);
 
 
   const open = (c: Category) => {
@@ -87,10 +65,21 @@ export default function HomePage() {
       <PageHeader title="AllFoods" />
 
       <div className="px-3 pb-4 pt-4">
-        {outOfRange ? (
+        {needsLocation ? (
+          <div className="flex flex-col items-center gap-4 py-16 px-4 text-center">
+            <MapPin size={32} className="text-tg-hint" />
+            <p className="text-tg-hint">{t.location_needed}</p>
+            <button
+              onClick={() => setPickingLocation(true)}
+              className="bg-[#121822] text-white font-semibold px-6 py-3 rounded-2xl active:scale-95 transition"
+            >
+              {t.choose_location}
+            </button>
+          </div>
+        ) : outOfRange ? (
           <p className="text-center text-tg-hint py-16 px-4">{t.out_of_range}</p>
         ) : error ? (
-          <ErrorState onRetry={load} />
+          <ErrorState onRetry={reload} />
         ) : loading ? (
           <StoreListSkeleton />
         ) : sections.length === 0 ? (
@@ -144,6 +133,18 @@ export default function HomePage() {
       </div>
 
       <CartPill />
+
+      {pickingLocation && (
+        <LocationConfirmSheet
+          initial={null}
+          lang={lang}
+          onClose={() => setPickingLocation(false)}
+          onConfirm={(lat, lng) => {
+            setPickingLocation(false);
+            confirmLocation(lat, lng);
+          }}
+        />
+      )}
     </div>
   );
 }

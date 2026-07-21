@@ -74,6 +74,7 @@ def courier_orders(
         select(Order)
         .where(
             Order.status.in_(ACTIVE_STATUSES),
+            Order.restaurant_id == courier.restaurant_id,
             or_(
                 Order.assigned_courier_id == courier.id,
                 Order.assigned_courier_id.is_(None),
@@ -92,8 +93,12 @@ def courier_order(
     db: Session = Depends(get_db),
 ):
     order = db.get(Order, order_id)
-    # O'ziniki yoki hali biriktirilmagan buyurtmani ko'rishi mumkin.
-    if not order or order.assigned_courier_id not in (None, courier.id):
+    # O'z do'konidan, o'ziniki yoki hali biriktirilmagan buyurtmani ko'rishi mumkin.
+    if (
+        not order
+        or order.restaurant_id != courier.restaurant_id
+        or order.assigned_courier_id not in (None, courier.id)
+    ):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Order not found")
     return order
 
@@ -148,7 +153,7 @@ def courier_update_order(
             f"Courier can only set: {[s.value for s in COURIER_ALLOWED_STATUSES]}",
         )
     order = db.get(Order, order_id)
-    if not order:
+    if not order or order.restaurant_id != courier.restaurant_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Order not found")
 
     now = datetime.now(timezone.utc)
@@ -162,7 +167,11 @@ def courier_update_order(
         # Atomik claim — ikki kuryer bir vaqtda bossa, faqat biri oladi.
         claimed = db.execute(
             update(Order)
-            .where(Order.id == order.id, Order.assigned_courier_id.is_(None))
+            .where(
+                Order.id == order.id,
+                Order.restaurant_id == courier.restaurant_id,
+                Order.assigned_courier_id.is_(None),
+            )
             .values(assigned_courier_id=courier.id)
         )
         if claimed.rowcount == 0:

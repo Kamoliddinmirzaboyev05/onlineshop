@@ -5,6 +5,11 @@ const BASE = import.meta.env.VITE_API_URL ?? "https://allfoodapi.webportfolio.uz
 // Foydalanuvchi do'kon yetkazish hududidan tashqarida — HomePage buni alohida ko'rsatadi.
 export class OutOfRangeError extends Error {}
 
+// Joylashuv aniqlanmadi (ruxsat berilmadi/xato/qo'llab-quvvatlanmaydi) — sahifa
+// noto'g'ri (standart) do'konni jim ko'rsatish o'rniga foydalanuvchidan manzilni
+// qo'lda tanlashni so'raydi.
+export class LocationDeniedError extends Error {}
+
 let token: string | null = localStorage.getItem("af_token");
 
 export function setToken(t: string) {
@@ -39,6 +44,12 @@ function getCoords(): Promise<{ lat: number; lng: number } | null> {
   });
 }
 
+// Foydalanuvchi xaritadan qo'lda manzil tanlaganda (LocationConfirmSheet) chaqiriladi —
+// keshni to'ldiradi, shunda qolgan sahifalar ham qayta ruxsat so'ramasdan shu nuqtani ishlatadi.
+export function setManualCoords(lat: number, lng: number) {
+  coordsCache = { lat, lng };
+}
+
 async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -70,21 +81,17 @@ export const api = {
     req<Restaurant[]>(`/restaurants${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   restaurant: (id: number) => req<RestaurantDetail>(`/restaurants/${id}`),
 
-  // faol do'kon — mijoz joylashuviga eng yaqinini tanlaydi, bo'lmasa standart do'kon
+  // faol do'kon — mijoz joylashuviga eng yaqinini tanlaydi. Joylashuv aniqlanmasa
+  // (ruxsat berilmagan/xato) standart do'konni taxmin qilmaymiz — LocationDeniedError
+  // tashlaymiz, chaqiruvchi sahifa foydalanuvchidan manzilni qo'lda so'raydi.
   store: async (): Promise<RestaurantDetail | null> => {
     const coords = await getCoords();
-    if (coords) {
-      try {
-        return await req<RestaurantDetail>(`/restaurants/nearest?lat=${coords.lat}&lng=${coords.lng}`);
-      } catch (e) {
-        // Hech bir do'kon bu hududni yetkazib bermaydi — standartga qaytmasdan xabar beramiz.
-        if (e instanceof Error && e.message.includes("OUT_OF_RANGE")) throw new OutOfRangeError();
-      }
-    }
+    if (!coords) throw new LocationDeniedError();
     try {
-      return await req<RestaurantDetail>("/restaurants/default");
-    } catch {
-      return null;
+      return await req<RestaurantDetail>(`/restaurants/nearest?lat=${coords.lat}&lng=${coords.lng}`);
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("OUT_OF_RANGE")) throw new OutOfRangeError();
+      throw e;
     }
   },
 

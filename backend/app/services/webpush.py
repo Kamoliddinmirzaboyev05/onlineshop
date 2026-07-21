@@ -16,7 +16,7 @@ from sqlalchemy import delete, select
 
 from app.core.config import settings
 from app.core.db import SessionLocal
-from app.models import PushSubscription
+from app.models import AdminUser, PushSubscription
 
 log = logging.getLogger(__name__)
 
@@ -76,13 +76,17 @@ def notify_courier(
     _deliver(subs, {"title": title, "body": body, "url": url, "tag": tag})
 
 
-def notify_all_couriers(title: str, body: str, url: str = "/", tag: str | None = None) -> None:
-    """Barcha kuryer obunalariga (admin_user_id IS NOT NULL) push — yangi
-    biriktirilmagan buyurtma hammaga ko'rinadi, birinchi qabul qilgan oladi."""
+def notify_all_couriers(
+    title: str, body: str, restaurant_id: int, url: str = "/", tag: str | None = None
+) -> None:
+    """Shu restoran kuryerlariga push — yangi biriktirilmagan buyurtma
+    o'sha do'kon kuryerlariga ko'rinadi, birinchi qabul qilgan oladi."""
     if not settings.vapid_private_key:
         return
     with SessionLocal() as db:
         subs = db.scalars(
-            select(PushSubscription).where(PushSubscription.admin_user_id.is_not(None))
+            select(PushSubscription)
+            .join(AdminUser, AdminUser.id == PushSubscription.admin_user_id)
+            .where(AdminUser.restaurant_id == restaurant_id)
         ).all()
     _deliver(subs, {"title": title, "body": body, "url": url, "tag": tag})

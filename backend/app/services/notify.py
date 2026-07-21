@@ -95,10 +95,11 @@ def notify_new_order(
         tag=f"order-{order.id}",
     )
 
-    # Barcha kuryerlarga — yangi buyurtma mavjud (birinchi qabul qilgan oladi).
+    # Shu do'kon kuryerlariga — yangi buyurtma mavjud (birinchi qabul qilgan oladi).
     webpush.notify_all_couriers(
         f"🆕 Yangi buyurtma № {order.number}",
         f"{order.total:,} so'm · {order.address_line}",
+        order.restaurant_id,
         url="/orders",
         tag=f"neworder-{order.id}",
     )

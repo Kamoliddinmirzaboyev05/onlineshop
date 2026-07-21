@@ -1,10 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Minus, Plus, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { api } from "../api/client";
-import type { Product, RestaurantDetail } from "../api/types";
+import { MapPin, Minus, Plus, Search } from "lucide-react";
+import { useMemo, useState } from "react";
+import type { Product } from "../api/types";
 import CartPill from "../components/CartPill";
 import ErrorState from "../components/ErrorState";
+import LocationConfirmSheet from "../components/LocationConfirmSheet";
+import { useStore } from "../hooks/useStore";
 import { loc, useI18n } from "../i18n";
 import { money, unitLabel } from "../lib/format";
 import { useCart } from "../store/cart";
@@ -12,22 +13,10 @@ import { haptic } from "../telegram";
 
 export default function SearchPage() {
   const { t, lang } = useI18n();
-  const [store, setStore] = useState<RestaurantDetail | null>(null);
-  const [error, setError] = useState(false);
+  const { store, error, needsLocation, reload, confirmLocation } = useStore();
+  const [pickingLocation, setPickingLocation] = useState(false);
   const [q, setQ] = useState("");
   const cart = useCart();
-
-  const load = () => {
-    setError(false);
-    api
-      .store()
-      .then(setStore)
-      .catch(() => setError(true));
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
 
   const all: Product[] = useMemo(
     () => (store?.categories ?? []).flatMap((c) => c.subcategories.flatMap((sc) => sc.products)),
@@ -55,7 +44,32 @@ export default function SearchPage() {
   };
   const qtyOf = (p: Product) => cart.lines[p.id]?.quantity ?? 0;
 
-  if (error) return <ErrorState onRetry={load} />;
+  if (needsLocation) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-16 px-4 text-center">
+        <MapPin size={32} className="text-tg-hint" />
+        <p className="text-tg-hint">{t.location_needed}</p>
+        <button
+          onClick={() => setPickingLocation(true)}
+          className="bg-[#121822] text-white font-semibold px-6 py-3 rounded-2xl active:scale-95 transition"
+        >
+          {t.choose_location}
+        </button>
+        {pickingLocation && (
+          <LocationConfirmSheet
+            initial={null}
+            lang={lang}
+            onClose={() => setPickingLocation(false)}
+            onConfirm={(lat, lng) => {
+              setPickingLocation(false);
+              confirmLocation(lat, lng);
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+  if (error) return <ErrorState onRetry={reload} />;
 
   return (
     <div className="min-h-full bg-tg-bg">
