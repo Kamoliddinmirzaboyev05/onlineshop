@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.cache import cache_get_json, cache_set_json
 from app.core.db import get_db
 from app.models import Category, CategoryGroup, DeliveryZone, Product, Restaurant
 from app.schemas.catalog import (
@@ -16,16 +17,34 @@ from app.services.geo import haversine_km, is_within_zone, shop_origin, zone_is_
 
 router = APIRouter(prefix="/restaurants", tags=["catalog"])
 
+# ponytail: TTL-only kesh — yozishda invalidatsiya yo'q, shuning uchun admin
+# o'zgartirgan mahsulot/kategoriya mijozga ~CACHE_TTL soniyagacha eski holda
+# ko'rinishi mumkin. Kengaytirish kerak bo'lsa: admin/business yozish
+# route'larida shu kalitlarga `redis_client.delete(...)` qo'shing.
+CACHE_TTL = 20
+
 
 @router.get("", response_model=list[RestaurantOut])
 def list_restaurants(db: Session = Depends(get_db), q: str | None = None):
+    cache_key = "catalog:restaurants:all"
+    if not q:
+        if (cached := cache_get_json(cache_key)) is not None:
+            return cached
     stmt = select(Restaurant).where(Restaurant.is_active.is_(True)).order_by(Restaurant.rating.desc())
     if q:
         stmt = stmt.where(Restaurant.name.ilike(f"%{q}%"))
-    return db.scalars(stmt).all()
+    restaurants = db.scalars(stmt).all()
+    if not q:
+        payload = [RestaurantOut.model_validate(r).model_dump(mode="json") for r in restaurants]
+        cache_set_json(cache_key, payload, CACHE_TTL)
+    return restaurants
 
 
 def _build_detail(restaurant: Restaurant, db: Session) -> RestaurantDetail:
+    cache_key = f"catalog:restaurant:{restaurant.id}"
+    if (cached := cache_get_json(cache_key)) is not None:
+        return RestaurantDetail.model_validate(cached)
+
     top_categories = db.scalars(
         select(Category)
         .where(Category.restaurant_id == restaurant.id, Category.parent_id.is_(None))
@@ -58,6 +77,7 @@ def _build_detail(restaurant: Restaurant, db: Session) -> RestaurantDetail:
     detail = RestaurantDetail.model_validate(restaurant)
     detail.categories = cat_out
     detail.category_groups = [CategoryGroupOut.model_validate(g) for g in groups]
+    cache_set_json(cache_key, detail.model_dump(mode="json"), CACHE_TTL)
     return detail
 
 

@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     postgres_db: str = "allfoods"
     postgres_host: str = "postgres"
     postgres_port: int = 5432
+    # Har bir gunicorn worker o'z pool'iga ega — jami ulanish soni taxminan
+    # workers * (db_pool_size + db_max_overflow). Postgres max_connections'dan
+    # oshmasligi kerak (default 100).
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+    db_pool_recycle: int = 1800
 
     redis_url: str = "redis://redis:6379/0"
 
