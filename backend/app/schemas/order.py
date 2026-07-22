@@ -76,6 +76,8 @@ class OrderOut(BaseModel):
     distance_km: float | None = None
     eta_minutes: int | None = None
     assigned_courier_id: int | None = None
+    assigned_courier_name: str | None = None
+    assigned_courier_phone: str | None = None
     courier_accepted_at: datetime | None = None
     delivering_started_at: datetime | None = None
     courier_delivered_at: datetime | None = None

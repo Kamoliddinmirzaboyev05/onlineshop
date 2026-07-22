@@ -106,6 +106,9 @@ export interface Order {
   comment?: string | null;
   distance_km?: number | null;
   eta_minutes?: number | null;
+  assigned_courier_id?: number | null;
+  assigned_courier_name?: string | null;
+  assigned_courier_phone?: string | null;
   courier_accepted_at?: string | null;
   delivering_started_at?: string | null;
   courier_delivered_at?: string | null;

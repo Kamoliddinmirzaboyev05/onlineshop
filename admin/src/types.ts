@@ -82,6 +82,8 @@ export interface Order {
   phone?: string | null;
   comment?: string | null;
   assigned_courier_id?: number | null;
+  assigned_courier_name?: string | null;
+  assigned_courier_phone?: string | null;
   courier_delivered_at?: string | null;
   created_at: string;
   items: OrderItem[];
@@ -144,6 +146,8 @@ export interface ReportsOut {
 export interface AdminUser {
   id: number;
   username: string;
+  name?: string | null;
+  phone?: string | null;
   role: string;
   is_active: boolean;
 }

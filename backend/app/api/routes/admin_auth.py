@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_admin
@@ -19,7 +19,13 @@ _login_limit = rate_limiter("admin_login", limit=10, window_seconds=60)
 
 @router.post("/login", response_model=TokenOut, dependencies=[Depends(_login_limit)])
 def admin_login(data: AdminLoginIn, db: Session = Depends(get_db)):
-    admin = db.scalar(select(AdminUser).where(AdminUser.username == data.username))
+    # Kuryer login maydoniga username o'rniga telefon raqamini ham kiritishi
+    # mumkin — ikkalasi ham qabul qilinadi.
+    admin = db.scalar(
+        select(AdminUser).where(
+            or_(AdminUser.username == data.username, AdminUser.phone == data.username)
+        )
+    )
     if not admin or not admin.is_active or not verify_password(data.password, admin.hashed_password):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid credentials")
     token = create_access_token(subject=admin.id, role=admin.role.value)

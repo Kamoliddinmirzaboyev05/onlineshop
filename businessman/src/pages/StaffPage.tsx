@@ -26,7 +26,7 @@ export default function StaffPage() {
   const storeName = (rid: number) => stores.find((s) => s.id === rid)?.name ?? "—";
   const [staff, setStaff] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState<{ username: string; password: string; role: "manager" | "courier"; restaurant_id: number } | null>(null);
+  const [form, setForm] = useState<{ username: string; password: string; name: string; phone: string; role: "manager" | "courier"; restaurant_id: number } | null>(null);
   const [err, setErr] = useState("");
 
   const load = async () => {
@@ -49,7 +49,11 @@ export default function StaffPage() {
     if (!form || !form.username.trim() || !form.password.trim()) return;
     setErr("");
     try {
-      await post(withStore("/admin/admin-users", form.restaurant_id), form);
+      await post(withStore("/admin/admin-users", form.restaurant_id), {
+        ...form,
+        name: form.name.trim() || undefined,
+        phone: form.phone.trim() || undefined,
+      });
       setForm(null);
       toast.success("Xodim yaratildi");
       load();
@@ -110,7 +114,7 @@ export default function StaffPage() {
       <div className="flex justify-end mb-4">
         <button
           className="btn"
-          onClick={() => { setErr(""); setForm({ username: "", password: "", role: "courier", restaurant_id: isAll ? stores[0]?.id ?? 0 : (storeId as number) }); }}
+          onClick={() => { setErr(""); setForm({ username: "", password: "", name: "", phone: "", role: "courier", restaurant_id: isAll ? stores[0]?.id ?? 0 : (storeId as number) }); }}
         >
           <Plus size={18} /> Yangi xodim
         </button>
@@ -122,6 +126,8 @@ export default function StaffPage() {
             <thead>
               <tr className="bg-slate-50">
                 <th className="th">Login</th>
+                <th className="th">Ism</th>
+                <th className="th">Telefon</th>
                 <th className="th">Rol</th>
                 {isAll && <th className="th">Do'kon</th>}
                 <th className="th">Holat</th>
@@ -138,6 +144,10 @@ export default function StaffPage() {
                       </span>
                       {u.username}
                     </div>
+                  </td>
+                  <td className="td text-slate-600">{u.name || "—"}</td>
+                  <td className="td text-slate-600">
+                    {u.phone ? <a href={`tel:${u.phone}`} className="hover:text-brand">{u.phone}</a> : "—"}
                   </td>
                   <td className="td">
                     <span className={`pill ${ROLE_PILL[u.role] ?? "bg-slate-100 text-slate-600"}`}>
@@ -172,7 +182,7 @@ export default function StaffPage() {
               ))}
               {staff.length === 0 && (
                 <tr>
-                  <td colSpan={isAll ? 5 : 4} className="td text-center text-slate-400 py-10">
+                  <td colSpan={isAll ? 7 : 6} className="td text-center text-slate-400 py-10">
                     <Users size={28} className="mx-auto mb-2 opacity-30" />
                     Hali xodim yo'q — "Yangi xodim" tugmasini bosing
                   </td>
@@ -202,6 +212,26 @@ export default function StaffPage() {
                 </select>
               </label>
             )}
+
+            <label className="block">
+              <span className="text-xs text-slate-500">Ism</span>
+              <input
+                className="input mt-1"
+                placeholder="Aziz Karimov"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-xs text-slate-500">Telefon</span>
+              <input
+                className="input mt-1"
+                placeholder="+998901234567"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              />
+            </label>
 
             <label className="block">
               <span className="text-xs text-slate-500">Login</span>

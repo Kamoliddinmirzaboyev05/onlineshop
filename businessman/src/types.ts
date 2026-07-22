@@ -123,6 +123,9 @@ export interface Order {
   address_line: string;
   phone?: string | null;
   comment?: string | null;
+  assigned_courier_id?: number | null;
+  assigned_courier_name?: string | null;
+  assigned_courier_phone?: string | null;
   created_at: string;
   items: OrderItem[];
 }
@@ -159,6 +162,8 @@ export interface Customer {
 export interface StaffUser {
   id: number;
   username: string;
+  name?: string | null;
+  phone?: string | null;
   role: "superadmin" | "manager" | "courier";
   restaurant_id: number;
   is_active: boolean;

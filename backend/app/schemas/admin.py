@@ -27,6 +27,8 @@ class DeliveryZoneOut(DeliveryZoneIn):
 class AdminUserOut(BaseModel):
     id: int
     username: str
+    name: str | None = None
+    phone: str | None = None
     role: AdminRole
     restaurant_id: int
     is_active: bool

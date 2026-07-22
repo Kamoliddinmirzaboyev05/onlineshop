@@ -81,7 +81,7 @@ def courier_orders(
             ),
         )
         .order_by(Order.created_at.asc())
-        .options(selectinload(Order.items))
+        .options(selectinload(Order.items), selectinload(Order.assigned_courier))
     )
     return db.scalars(stmt).all()
 
@@ -282,7 +282,7 @@ def courier_history(
     stmt = (
         stmt.order_by(Order.updated_at.desc())
         .limit(limit)
-        .options(selectinload(Order.items))
+        .options(selectinload(Order.items), selectinload(Order.assigned_courier))
     )
     return db.scalars(stmt).all()
 

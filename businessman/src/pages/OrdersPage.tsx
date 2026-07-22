@@ -1,4 +1,4 @@
-import { ChevronDown, MapPin, Phone, X } from "lucide-react";
+import { ChevronDown, MapPin, Phone, User, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { get, getAll, patch, withStore } from "../api";
@@ -171,6 +171,27 @@ export default function OrdersPage() {
                 ))}
               </div>
             )}
+
+            {/* Kuryer holati */}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {o.assigned_courier_id ? (
+                <span className="pill bg-slate-100 text-slate-600 inline-flex items-center gap-1">
+                  <User size={12} /> {o.assigned_courier_name ?? `#${o.assigned_courier_id}`}
+                </span>
+              ) : (
+                canCancel && (
+                  <span className="pill bg-amber-50 text-amber-600">Kuryer kutilmoqda</span>
+                )
+              )}
+              {o.assigned_courier_phone && (
+                <a
+                  href={`tel:${o.assigned_courier_phone}`}
+                  className="pill bg-slate-100 text-slate-600 inline-flex items-center gap-1 hover:text-brand"
+                >
+                  <Phone size={12} /> {o.assigned_courier_phone}
+                </a>
+              )}
+            </div>
 
             {canCancel && (
               <div className="mt-3">

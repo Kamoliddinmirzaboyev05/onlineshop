@@ -93,6 +93,16 @@ class Order(Base):
     assigned_courier = relationship("AdminUser")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
 
+    # Mijoz/tadbirkor/admin uchun — kuryerning ismi/telefoni (OrderOut'ga
+    # to'g'ridan-to'g'ri chiqadi). Eager-load qilinmasa lazy-load bo'ladi.
+    @property
+    def assigned_courier_name(self) -> str | None:
+        return self.assigned_courier.name if self.assigned_courier else None
+
+    @property
+    def assigned_courier_phone(self) -> str | None:
+        return self.assigned_courier.phone if self.assigned_courier else None
+
 
 class OrderItem(Base):
     __tablename__ = "order_items"

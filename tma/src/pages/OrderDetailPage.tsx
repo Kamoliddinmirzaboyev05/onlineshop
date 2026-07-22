@@ -1,4 +1,4 @@
-import { Check, CheckCircle2, Clock, CreditCard, MapPin, MessageCircle, Phone, Printer, ShoppingBag, XCircle } from "lucide-react";
+import { Check, CheckCircle2, Clock, CreditCard, MapPin, MessageCircle, Phone, Printer, ShoppingBag, User, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
@@ -200,6 +200,27 @@ export default function OrderDetailPage() {
               <div className="text-xs text-tg-hint">{lang === "uz" ? "Taxminiy vaqt" : "Время"}</div>
               <div className="font-bold text-sm mt-0.5 text-brand">~{order.eta_minutes} {t.min}</div>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Kuryer — buyurtmani qabul qilgach ismi/raqami ko'rinadi */}
+      {order.assigned_courier_name && (
+        <div className="mt-4 card p-4 flex items-center gap-3">
+          <span className="shrink-0 h-10 w-10 rounded-full bg-brand-light/40 text-brand flex items-center justify-center">
+            <User size={18} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs text-tg-hint">{lang === "uz" ? "Kuryer" : "Курьер"}</div>
+            <div className="font-semibold text-sm truncate">{order.assigned_courier_name}</div>
+          </div>
+          {order.assigned_courier_phone && (
+            <a
+              href={`tel:${order.assigned_courier_phone}`}
+              className="shrink-0 h-10 w-10 rounded-full bg-brand text-white flex items-center justify-center active:scale-90 transition"
+            >
+              <Phone size={16} />
+            </a>
           )}
         </div>
       )}

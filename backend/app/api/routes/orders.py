@@ -40,13 +40,13 @@ def my_orders(user: User = Depends(get_current_user), db: Session = Depends(get_
         select(Order)
         .where(Order.user_id == user.id)
         .order_by(Order.created_at.desc())
-        .options(selectinload(Order.items))
+        .options(selectinload(Order.items), selectinload(Order.assigned_courier))
     ).all()
 
 
 @router.get("/{order_id}", response_model=OrderOut)
 def get_order(order_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    order = db.get(Order, order_id)
+    order = db.get(Order, order_id, options=[selectinload(Order.assigned_courier)])
     if not order or order.user_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Order not found")
     return order

@@ -512,7 +512,7 @@ def admin_orders(
         select(Order)
         .where(Order.restaurant_id == store.id)
         .order_by(Order.created_at.desc())
-        .options(selectinload(Order.items))
+        .options(selectinload(Order.items), selectinload(Order.assigned_courier))
     )
     if status_filter:
         stmt = stmt.where(Order.status == status_filter)
@@ -663,6 +663,8 @@ from app.models.enums import AdminRole  # noqa: E402
 class _AdminUserCreateIn(BaseModel):
     username: str
     password: str
+    name: str | None = None
+    phone: str | None = None
     role: AdminRole = AdminRole.courier
 
 
@@ -687,9 +689,15 @@ def create_admin_user(
 ):
     if db.scalar(select(AdminUser).where(AdminUser.username == data.username)):
         raise HTTPException(status.HTTP_409_CONFLICT, "Username already taken")
+    # Telefon orqali login qilish uchun raqam boshqa xodimda takrorlanmasligi kerak
+    # (aks holda login'da qaysi xodim ekani noaniq bo'lib qoladi).
+    if data.phone and db.scalar(select(AdminUser).where(AdminUser.phone == data.phone)):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Bu telefon raqam allaqachon band")
     u = AdminUser(
         username=data.username,
         hashed_password=hash_password(data.password),
+        name=data.name,
+        phone=data.phone,
         role=data.role,
         restaurant_id=store.id,
     )

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { get, patch } from "../api";
 import { confirm } from "../components/Confirm";
 import { ErrorRetry, OrderListSkeleton } from "../components/Skeleton";
-import type { AdminUser, Order, OrderStatus } from "../types";
+import type { Order, OrderStatus } from "../types";
 
 const STATUSES: OrderStatus[] = [
   "pending", "confirmed", "preparing", "ready", "accepted", "delivering", "delivered", "cancelled",
@@ -35,7 +35,6 @@ const RANK: Record<OrderStatus, number> = {
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [couriers, setCouriers] = useState<AdminUser[]>([]);
   const [filter, setFilter] = useState<OrderStatus | "">("");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(false);
@@ -67,10 +66,6 @@ export default function OrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
-  useEffect(() => {
-    get<AdminUser[]>("/admin/courier-accounts").then(setCouriers).catch(() => {});
-  }, []);
-
   const cancel = async (o: Order) => {
     const ok = await confirm({
       title: `№ ${o.number} buyurtmani bekor qilasizmi?`,
@@ -96,9 +91,6 @@ export default function OrdersPage() {
       setBusy(null);
     }
   };
-
-  const courierName = (id?: number | null) =>
-    couriers.find((c) => c.id === id)?.username ?? null;
 
   const sorted = [...orders].sort(
     (a, b) =>
@@ -171,9 +163,18 @@ export default function OrdersPage() {
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {o.assigned_courier_id ? (
                 <span className="pill bg-slate-100 text-slate-600 inline-flex items-center gap-1">
-                  <User size={12} /> {courierName(o.assigned_courier_id) ?? `#${o.assigned_courier_id}`}
+                  <User size={12} /> {o.assigned_courier_name ?? `#${o.assigned_courier_id}`}
                 </span>
-              ) : (
+              ) : null}
+              {o.assigned_courier_phone && (
+                <a
+                  href={`tel:${o.assigned_courier_phone}`}
+                  className="pill bg-slate-100 text-slate-600 inline-flex items-center gap-1 hover:text-brand"
+                >
+                  <Phone size={12} /> {o.assigned_courier_phone}
+                </a>
+              )}
+              {!o.assigned_courier_id && (
                 o.status !== "delivered" && o.status !== "cancelled" && (
                   <span className="pill bg-amber-50 text-amber-600">Kuryer kutilmoqda</span>
                 )

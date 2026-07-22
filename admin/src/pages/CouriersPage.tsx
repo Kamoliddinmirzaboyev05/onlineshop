@@ -17,6 +17,8 @@ export default function CouriersPage() {
   const [form, setForm] = useState<{
     username: string;
     password: string;
+    name: string;
+    phone: string;
     role: string;
   } | null>(null);
   const [err, setErr] = useState("");
@@ -35,7 +37,11 @@ export default function CouriersPage() {
     if (!form || !form.username.trim() || !form.password.trim()) return;
     setErr("");
     try {
-      await post("/admin/admin-users", form);
+      await post("/admin/admin-users", {
+        ...form,
+        name: form.name.trim() || undefined,
+        phone: form.phone.trim() || undefined,
+      });
       setForm(null);
       toast.success("Xodim yaratildi");
       load();
@@ -92,7 +98,7 @@ export default function CouriersPage() {
       <div className="flex justify-end mb-4">
         <button
           className="btn"
-          onClick={() => { setErr(""); setForm({ username: "", password: "", role: "courier" }); }}
+          onClick={() => { setErr(""); setForm({ username: "", password: "", name: "", phone: "", role: "courier" }); }}
         >
           <Plus size={18} /> Xodim qo'shish
         </button>
@@ -104,6 +110,8 @@ export default function CouriersPage() {
             <thead>
               <tr className="bg-slate-50">
                 <th className="th">Login</th>
+                <th className="th">Ism</th>
+                <th className="th">Telefon</th>
                 <th className="th">Rol</th>
                 <th className="th">Holat</th>
                 <th className="th">Qo'shilgan</th>
@@ -120,6 +128,10 @@ export default function CouriersPage() {
                       </span>
                       {u.username}
                     </div>
+                  </td>
+                  <td className="td text-slate-600">{u.name || "—"}</td>
+                  <td className="td text-slate-600">
+                    {u.phone ? <a href={`tel:${u.phone}`} className="hover:text-brand">{u.phone}</a> : "—"}
                   </td>
                   <td className="td">
                     <span className={`pill ${ROLE_PILL[u.role] ?? "bg-slate-100 text-slate-600"}`}>
@@ -156,7 +168,7 @@ export default function CouriersPage() {
               ))}
               {accounts.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="td text-center text-slate-400 py-10">
+                  <td colSpan={7} className="td text-center text-slate-400 py-10">
                     <Bike size={28} className="mx-auto mb-2 opacity-30" />
                     Hali xodim yo'q — "Qo'shish" tugmasini bosing
                   </td>
@@ -172,6 +184,26 @@ export default function CouriersPage() {
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="card p-6 w-96 space-y-4">
             <h2 className="font-bold text-lg">Yangi xodim</h2>
+
+            <label className="block">
+              <span className="text-xs text-slate-500">Ism</span>
+              <input
+                className="input mt-1"
+                placeholder="Aziz Karimov"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-xs text-slate-500">Telefon</span>
+              <input
+                className="input mt-1"
+                placeholder="+998901234567"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              />
+            </label>
 
             <label className="block">
               <span className="text-xs text-slate-500">Login</span>
