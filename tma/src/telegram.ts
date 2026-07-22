@@ -76,8 +76,9 @@ export type TelegramLocationResult =
 export function requestTelegramLocation(): Promise<TelegramLocationResult> {
   const lm = tg?.LocationManager;
   if (!lm) return Promise.resolve({ status: "unsupported" });
-  return new Promise((resolve) => {
-    lm.init(() => {
+
+  const attempt = new Promise<TelegramLocationResult>((resolve) => {
+    const proceed = () => {
       if (!lm.isLocationAvailable) {
         resolve({ status: "device_off" });
         return;
@@ -89,8 +90,25 @@ export function requestTelegramLocation(): Promise<TelegramLocationResult> {
       lm.getLocation((loc) =>
         resolve(loc ? { status: "ok", lat: loc.latitude, lng: loc.longitude } : { status: "error" })
       );
-    });
+    };
+    // init() faqat BIR marta chaqirilishi kerak — qayta chaqirilsa Telegram
+    // callback'ni umuman ishga tushirmasligi mumkin (isInited allaqachon true).
+    if (lm.isInited) proceed();
+    else lm.init(proceed);
   });
+
+  // Telegram Desktop'da (Windows/Mac/Linux) ma'lum platforma xatosi bor:
+  // LocationManager mount bo'ladi, lekin getLocation/init callback'i HECH
+  // QACHON chaqirilmasligi mumkin — bu bizni abadiy "yuklanmoqda" holatida
+  // qoldirardi (loading skeleton ilashib qolishi shu sabab edi). Timeout
+  // bilan brauzer Geolocation'ga zaxira sifatida tushamiz.
+  // https://github.com/Telegram-Mini-Apps/issues/issues/77
+  return Promise.race([
+    attempt,
+    new Promise<TelegramLocationResult>((resolve) =>
+      setTimeout(() => resolve({ status: "error" }), 6000)
+    ),
+  ]);
 }
 
 export function openTelegramLocationSettings() {
