@@ -16,7 +16,7 @@ from aiogram.types import (
 )
 
 from app.bot import repo
-from app.bot.handlers import lang_kb, main_menu
+from app.bot.handlers import lang_kb, main_menu, start_shopping_kb
 from app.bot.i18n import t
 
 router = Router()
@@ -120,3 +120,4 @@ async def onboard_name(message: Message, state: FSMContext) -> None:
         t(user.language, "onboard_done", name=first),
         reply_markup=main_menu(user.language),
     )
+    await message.answer(t(user.language, "start_shopping_prompt"), reply_markup=start_shopping_kb(user.language))

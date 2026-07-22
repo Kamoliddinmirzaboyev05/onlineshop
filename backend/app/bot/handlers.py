@@ -39,6 +39,15 @@ def _btn_texts(key: str) -> set[str]:
     return {TEXTS[l][key] for l in TEXTS if key in TEXTS[l]}
 
 
+def start_shopping_kb(lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(
+            text=t(lang, "start_shopping"),
+            web_app=WebAppInfo(url=settings.tma_url),
+        )]]
+    )
+
+
 def lang_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -77,13 +86,7 @@ async def on_help_btn(message: Message) -> None:
 @router.message(F.text.in_(_btn_texts("open_app")))
 async def on_open_app_btn(message: Message) -> None:
     user = repo.get_or_create_user(message.from_user.id, message.from_user.first_name, message.from_user.username)
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(
-            text=t(user.language, "start_shopping"),
-            web_app=WebAppInfo(url=settings.tma_url),
-        )]]
-    )
-    await message.answer(t(user.language, "start_shopping_prompt"), reply_markup=kb)
+    await message.answer(t(user.language, "start_shopping_prompt"), reply_markup=start_shopping_kb(user.language))
 
 
 @router.message(F.text.in_(_btn_texts("orders")))
