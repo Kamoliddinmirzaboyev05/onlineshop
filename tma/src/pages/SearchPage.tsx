@@ -1,10 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { MapPin, Minus, Plus, Search } from "lucide-react";
+import { Minus, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Product } from "../api/types";
 import CartPill from "../components/CartPill";
 import ErrorState from "../components/ErrorState";
-import LocationConfirmSheet from "../components/LocationConfirmSheet";
+import LocationNeeded from "../components/LocationNeeded";
 import { useStore } from "../hooks/useStore";
 import { loc, useI18n } from "../i18n";
 import { money, unitLabel } from "../lib/format";
@@ -13,8 +13,7 @@ import { haptic } from "../telegram";
 
 export default function SearchPage() {
   const { t, lang } = useI18n();
-  const { store, error, needsLocation, reload, confirmLocation } = useStore();
-  const [pickingLocation, setPickingLocation] = useState(false);
+  const { store, error, needsLocation, locationIssue, reload } = useStore();
   const [q, setQ] = useState("");
   const cart = useCart();
 
@@ -45,29 +44,7 @@ export default function SearchPage() {
   const qtyOf = (p: Product) => cart.lines[p.id]?.quantity ?? 0;
 
   if (needsLocation) {
-    return (
-      <div className="flex flex-col items-center gap-4 py-16 px-4 text-center">
-        <MapPin size={32} className="text-tg-hint" />
-        <p className="text-tg-hint">{t.location_needed}</p>
-        <button
-          onClick={() => setPickingLocation(true)}
-          className="bg-[#121822] text-white font-semibold px-6 py-3 rounded-2xl active:scale-95 transition"
-        >
-          {t.choose_location}
-        </button>
-        {pickingLocation && (
-          <LocationConfirmSheet
-            initial={null}
-            lang={lang}
-            onClose={() => setPickingLocation(false)}
-            onConfirm={(lat, lng) => {
-              setPickingLocation(false);
-              confirmLocation(lat, lng);
-            }}
-          />
-        )}
-      </div>
-    );
+    return <LocationNeeded issue={locationIssue} onRetry={reload} />;
   }
   if (error) return <ErrorState onRetry={reload} />;
 

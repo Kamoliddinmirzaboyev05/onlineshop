@@ -1,12 +1,11 @@
 import { motion } from "framer-motion";
-import { ChevronRight, MapPin } from "lucide-react";
-import { useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { Category } from "../api/types";
 import CartPill from "../components/CartPill";
 import { StoreListSkeleton } from "../components/Skeleton";
 import ErrorState from "../components/ErrorState";
-import LocationConfirmSheet from "../components/LocationConfirmSheet";
+import LocationNeeded from "../components/LocationNeeded";
 import PageHeader from "../components/PageHeader";
 import { useStore } from "../hooks/useStore";
 import { loc, useI18n } from "../i18n";
@@ -34,9 +33,7 @@ const card = {
 export default function HomePage() {
   const { t, lang } = useI18n();
   const nav = useNavigate();
-  const { store, loading, error, outOfRange, needsLocation, reload, confirmLocation } = useStore();
-  const [pickingLocation, setPickingLocation] = useState(false);
-
+  const { store, loading, error, outOfRange, needsLocation, locationIssue, reload } = useStore();
 
   const open = (c: Category) => {
     haptic("light");
@@ -66,16 +63,7 @@ export default function HomePage() {
 
       <div className="px-3 pb-4 pt-4">
         {needsLocation ? (
-          <div className="flex flex-col items-center gap-4 py-16 px-4 text-center">
-            <MapPin size={32} className="text-tg-hint" />
-            <p className="text-tg-hint">{t.location_needed}</p>
-            <button
-              onClick={() => setPickingLocation(true)}
-              className="bg-[#121822] text-white font-semibold px-6 py-3 rounded-2xl active:scale-95 transition"
-            >
-              {t.choose_location}
-            </button>
-          </div>
+          <LocationNeeded issue={locationIssue} onRetry={reload} />
         ) : outOfRange ? (
           <p className="text-center text-tg-hint py-16 px-4">{t.out_of_range}</p>
         ) : error ? (
@@ -133,18 +121,6 @@ export default function HomePage() {
       </div>
 
       <CartPill />
-
-      {pickingLocation && (
-        <LocationConfirmSheet
-          initial={null}
-          lang={lang}
-          onClose={() => setPickingLocation(false)}
-          onConfirm={(lat, lng) => {
-            setPickingLocation(false);
-            confirmLocation(lat, lng);
-          }}
-        />
-      )}
     </div>
   );
 }

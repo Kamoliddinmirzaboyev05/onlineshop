@@ -27,6 +27,15 @@ let coordsCache: { lat: number; lng: number } | null | undefined;
 // ikkinchi marta getCurrentPosition chaqirilmasligi uchun.
 let coordsPromise: Promise<{ lat: number; lng: number } | null> | null = null;
 
+// Oxirgi urinish nega muvaffaqiyatsiz bo'lganini UI'ga bildirish uchun —
+// "qurilmada GPS o'chiq"/"rad etilgan" holatlarida foydalanuvchiga xaritani
+// emas, aynan sozlamalarni yoqish so'ralishi kerak.
+export type LocationIssue = "device_off" | "denied" | "other";
+let lastLocationIssue: LocationIssue | null = null;
+export function getLastLocationIssue(): LocationIssue | null {
+  return lastLocationIssue;
+}
+
 // TMA ochilishi bilan (App.tsx) va checkout paytida (CheckoutPage) ham shu
 // funksiya chaqiriladi — natija keshlangani uchun ikkinchisi darhol qaytadi.
 export function getCoords(): Promise<{ lat: number; lng: number } | null> {
@@ -35,20 +44,31 @@ export function getCoords(): Promise<{ lat: number; lng: number } | null> {
   coordsPromise = requestTelegramLocation()
     .then((result) => {
       if (result.status === "ok") {
+        lastLocationIssue = null;
         coordsCache = { lat: result.lat, lng: result.lng };
         return coordsCache;
       }
+      if (result.status === "device_off" || result.status === "denied") {
+        // Qurilma holati aniq — brauzer Geolocation'ga tushish shart emas,
+        // xuddi shu sababdan u ham muvaffaqiyatsiz bo'ladi.
+        lastLocationIssue = result.status;
+        coordsCache = null;
+        return null;
+      }
       if (!navigator.geolocation) {
+        lastLocationIssue = "other";
         coordsCache = null;
         return null;
       }
       return new Promise<{ lat: number; lng: number } | null>((resolve) => {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
+            lastLocationIssue = null;
             coordsCache = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             resolve(coordsCache);
           },
           () => {
+            lastLocationIssue = "other";
             coordsCache = null;
             resolve(null);
           },
@@ -60,12 +80,6 @@ export function getCoords(): Promise<{ lat: number; lng: number } | null> {
       coordsPromise = null;
     });
   return coordsPromise;
-}
-
-// Foydalanuvchi xaritadan qo'lda manzil tanlaganda (LocationConfirmSheet) chaqiriladi —
-// keshni to'ldiradi, shunda qolgan sahifalar ham qayta ruxsat so'ramasdan shu nuqtani ishlatadi.
-export function setManualCoords(lat: number, lng: number) {
-  coordsCache = { lat, lng };
 }
 
 // Foydalanuvchi joylashuvni yoqib (masalan qurilma sozlamalariga kirib-chiqib)
