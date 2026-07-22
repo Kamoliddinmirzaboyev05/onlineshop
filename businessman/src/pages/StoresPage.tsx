@@ -146,15 +146,15 @@ export default function StoresPage() {
     });
     if (!ok) return;
     try {
-      await del(`/business/stores/${s.id}`);
-      toast.success("Do'kon o'chirildi");
+      const res = await del<{ archived: boolean }>(`/business/stores/${s.id}`);
+      toast.success(
+        res.archived
+          ? "Buyurtma tarixi bor edi — do'kon nofaol qilindi (tarix saqlanadi)"
+          : "Do'kon o'chirildi"
+      );
       load();
-    } catch (e) {
-      if (String(e).includes("409")) {
-        toast.error("Buyurtma tarixi bor do'konni o'chirib bo'lmaydi");
-      } else {
-        toast.error("O'chirib bo'lmadi");
-      }
+    } catch {
+      toast.error("O'chirib bo'lmadi");
     }
   };
 

@@ -89,24 +89,28 @@ def update_store(
     return store
 
 
-@router.delete("/stores/{rid}", status_code=204)
+@router.delete("/stores/{rid}")
 def delete_store(
     rid: int,
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    """Do'konni o'chirish. Buyurtma tarixi bor do'kon o'chirilmaydi (409) —
-    aks holda cascade uning buyurtmalarini ham olib ketardi."""
+    """Do'konni o'chirish. Buyurtma tarixi bor do'konni butunlay o'chirib
+    bo'lmaydi (cascade uning buyurtmalarini ham olib ketardi) — shuning
+    o'rniga nofaol (is_active/is_open=False) qilinadi: mijozlarga va yangi
+    buyurtmalarga ko'rinmay qoladi, tarix va hisobotlar saqlanadi."""
     store = _own_store(rid, business, db)
     has_orders = db.scalar(
         select(func.count(Order.id)).where(Order.restaurant_id == store.id)
     )
     if has_orders:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "Buyurtma tarixi bor do'konni o'chirib bo'lmaydi"
-        )
+        store.is_active = False
+        store.is_open = False
+        db.commit()
+        return {"archived": True}
     db.delete(store)
     db.commit()
+    return {"archived": False}
 
 
 @router.get("/stats", response_model=BusinessStatsOut)

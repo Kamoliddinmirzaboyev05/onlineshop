@@ -39,7 +39,7 @@ export const put = <T>(p: string, body: unknown) =>
   api<T>(p, { method: "PUT", body: JSON.stringify(body) });
 export const patch = <T>(p: string, body: unknown) =>
   api<T>(p, { method: "PATCH", body: JSON.stringify(body) });
-export const del = (p: string) => api<void>(p, { method: "DELETE" });
+export const del = <T = void>(p: string) => api<T>(p, { method: "DELETE" });
 
 // Businessman /admin/* endpointlariga qaysi do'kon ustida ishlayotganini
 // bildiruvchi ?restaurant_id= ni markazdan qo'shamiz.
