@@ -78,7 +78,12 @@ export function requestTelegramLocation(): Promise<TelegramLocationResult> {
   if (!lm) return Promise.resolve({ status: "unsupported" });
 
   const attempt = new Promise<TelegramLocationResult>((resolve) => {
-    const proceed = () => {
+    // Har safar init() chaqiramiz (isInited bo'lsa ham) — isLocationAvailable
+    // faqat init() ishga tushganda yangilanadi degan taxmin bilan (foydalanuvchi
+    // sozlamalardan qaytib, GPS'ni endigina yoqqan bo'lishi mumkin — eski
+    // keshlangan qiymatni emas, YANGI holatni tekshirishimiz kerak). Callback
+    // chaqirilmay qolish xavfiga esa pastdagi timeout javob beradi.
+    lm.init(() => {
       if (!lm.isLocationAvailable) {
         resolve({ status: "device_off" });
         return;
@@ -90,11 +95,7 @@ export function requestTelegramLocation(): Promise<TelegramLocationResult> {
       lm.getLocation((loc) =>
         resolve(loc ? { status: "ok", lat: loc.latitude, lng: loc.longitude } : { status: "error" })
       );
-    };
-    // init() faqat BIR marta chaqirilishi kerak — qayta chaqirilsa Telegram
-    // callback'ni umuman ishga tushirmasligi mumkin (isInited allaqachon true).
-    if (lm.isInited) proceed();
-    else lm.init(proceed);
+    });
   });
 
   // Telegram Desktop'da (Windows/Mac/Linux) ma'lum platforma xatosi bor:
