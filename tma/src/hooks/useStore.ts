@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, LocationDeniedError, OutOfRangeError, setManualCoords } from "../api/client";
+import { api, LocationDeniedError, OutOfRangeError, retryCoordsIfPreviouslyFailed, setManualCoords } from "../api/client";
 import type { RestaurantDetail } from "../api/types";
 
 /** Faol do'konni joylashuv bo'yicha yuklaydi. Ruxsat berilmasa noto'g'ri
@@ -30,6 +30,25 @@ export function useStore() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Foydalanuvchi joylashuvni yoqish uchun qurilma/Telegram sozlamalariga
+  // o'tib qaytganda — qo'lda "qayta urinish" tugmasini bosishga majburlamay,
+  // avtomatik qayta tekshiramiz.
+  useEffect(() => {
+    if (!needsLocation) return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        retryCoordsIfPreviouslyFailed();
+        load();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [needsLocation, load]);
 
   const confirmLocation = useCallback(
     (lat: number, lng: number) => {

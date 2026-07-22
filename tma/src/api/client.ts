@@ -1,4 +1,4 @@
-import { getTelegramLocation } from "../telegram";
+import { requestTelegramLocation } from "../telegram";
 import type { Address, Order, Restaurant, RestaurantDetail, User } from "./types";
 
 const BASE = import.meta.env.VITE_API_URL ?? "https://allfoodapi.webportfolio.uz/api";
@@ -32,11 +32,11 @@ let coordsPromise: Promise<{ lat: number; lng: number } | null> | null = null;
 export function getCoords(): Promise<{ lat: number; lng: number } | null> {
   if (coordsCache !== undefined) return Promise.resolve(coordsCache);
   if (coordsPromise) return coordsPromise;
-  coordsPromise = getTelegramLocation()
-    .then((tgLoc) => {
-      if (tgLoc) {
-        coordsCache = tgLoc;
-        return tgLoc;
+  coordsPromise = requestTelegramLocation()
+    .then((result) => {
+      if (result.status === "ok") {
+        coordsCache = { lat: result.lat, lng: result.lng };
+        return coordsCache;
       }
       if (!navigator.geolocation) {
         coordsCache = null;
@@ -66,6 +66,15 @@ export function getCoords(): Promise<{ lat: number; lng: number } | null> {
 // keshni to'ldiradi, shunda qolgan sahifalar ham qayta ruxsat so'ramasdan shu nuqtani ishlatadi.
 export function setManualCoords(lat: number, lng: number) {
   coordsCache = { lat, lng };
+}
+
+// Foydalanuvchi joylashuvni yoqib (masalan qurilma sozlamalariga kirib-chiqib)
+// ilovaga qaytganda chaqiriladi — faqat OLDINGI urinish MUVAFFAQIYATSIZ (null)
+// bo'lgan holatda keshni tozalaydi, shunda keyingi getCoords() qayta so'raydi.
+// Muvaffaqiyatli aniqlangan joylashuvni bekorga qayta so'ramaslik uchun
+// (coordsCache === undefined — hali umuman so'ralmagan) tegilmaydi.
+export function retryCoordsIfPreviouslyFailed() {
+  if (coordsCache === null) coordsCache = undefined;
 }
 
 async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {

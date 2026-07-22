@@ -59,28 +59,38 @@ export function haptic(type: "light" | "medium" | "heavy" = "light") {
   tg?.HapticFeedback?.impactOccurred(type);
 }
 
-// Telegram'ning o'z joylashuv menejeri (Bot API 8.0+, eski klientlarda yo'q —
-// LocationManager undefined bo'lsa chaqiruvchi brauzer Geolocation'ga o'tadi).
-export function getTelegramLocation(): Promise<{ lat: number; lng: number } | null> {
+// Telegram'ning o'z joylashuv menejeri (Bot API 8.0+, eski klientlarda yo'q).
+// Uch xil muvaffaqiyatsizlik sababini ajratamiz, chunki har biriga UI'da
+// boshqacha javob kerak:
+//  - "device_off": qurilmada GPS/joylashuv xizmati umuman o'chiq — buni hech
+//    qanday veb/Telegram API orqali kod ichidan yoqib bo'lmaydi, faqat
+//    qurilma sozlamalaridan (shu sabab openSettings() chaqiramiz).
+//  - "denied": foydalanuvchi ilgari ruxsatni rad etgan — Telegram endi
+//    o'zi qayta so'ramaydi, yana faqat sozlamalar orqali.
+//  - "not_requested"/hali so'ralmagan holatda getLocation() Telegram'ning
+//    o'z ICHKI (ilovadan chiqmaydigan) ruxsat oynasini ko'rsatadi — eng яхши holat.
+export type TelegramLocationResult =
+  | { status: "ok"; lat: number; lng: number }
+  | { status: "unsupported" | "device_off" | "denied" | "error" };
+
+export function requestTelegramLocation(): Promise<TelegramLocationResult> {
   const lm = tg?.LocationManager;
-  if (!lm) return Promise.resolve(null);
+  if (!lm) return Promise.resolve({ status: "unsupported" });
   return new Promise((resolve) => {
     lm.init(() => {
       if (!lm.isLocationAvailable) {
-        resolve(null);
+        resolve({ status: "device_off" });
         return;
       }
-      lm.getLocation((loc) => resolve(loc ? { lat: loc.latitude, lng: loc.longitude } : null));
+      if (lm.isAccessRequested && !lm.isAccessGranted) {
+        resolve({ status: "denied" });
+        return;
+      }
+      lm.getLocation((loc) =>
+        resolve(loc ? { status: "ok", lat: loc.latitude, lng: loc.longitude } : { status: "error" })
+      );
     });
   });
-}
-
-// Foydalanuvchi Telegram orqali joylashuvni avval rad etgan bo'lsa (isAccessRequested
-// true, isAccessGranted false) — qayta so'rash uchun brauzer permission prompt'i
-// chiqmaydi, faqat Telegram sozlamalarini ochish mumkin.
-export function canOpenTelegramLocationSettings(): boolean {
-  const lm = tg?.LocationManager;
-  return !!lm && lm.isAccessRequested && !lm.isAccessGranted;
 }
 
 export function openTelegramLocationSettings() {
