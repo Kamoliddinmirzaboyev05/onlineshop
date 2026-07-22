@@ -160,7 +160,11 @@ def main(engine=engine) -> None:
         conn.execute(text("ALTER TABLE admin_users ALTER COLUMN restaurant_id SET NOT NULL"))
 
         # delivery_zones / couriers — cross-tenant izolyatsiya uchun do'konga bog'lash.
+        # couriers — legacy jadval (modeli yo'q, faqat eski bazalarda bor);
+        # toza bazada create_all uni yaratmaydi, shuning uchun mavjudligini tekshiramiz.
         for table in ("delivery_zones", "couriers"):
+            if conn.execute(text("SELECT to_regclass(:t)"), {"t": table}).scalar() is None:
+                continue
             conn.execute(text(
                 f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS restaurant_id INTEGER "
                 "REFERENCES restaurants(id) ON DELETE CASCADE"
