@@ -3,6 +3,7 @@ import { LocateFixed, MapPin, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { reverseGeocode } from "../lib/geocode";
+import { canOpenTelegramLocationSettings, getTelegramLocation, openTelegramLocationSettings } from "../telegram";
 
 // Default: Farg'ona shahar markazi.
 const DEFAULT_CENTER: [number, number] = [40.3864, 71.7864];
@@ -17,12 +18,17 @@ function MoveTracker({ onMoveEnd }: { onMoveEnd: (lat: number, lng: number) => v
   return null;
 }
 
-function Recenter({ point }: { point: [number, number] }) {
+// `tick` faqat DASTURIY markazlashda (GPS natijasi/boshlang'ich nuqta)
+// oshiriladi — foydalanuvchi xaritani qo'lda surganda EMAS. Aks holda har bir
+// sudrashdan keyin setView xaritani zo'rlab qayta markazlashtirib, foydalanuvchi
+// harakati bilan "jang qiladi" (surish ishlamayotgandek tuyuladi).
+function Recenter({ point, tick }: { point: [number, number]; tick: number }) {
   const map = useMap();
   useEffect(() => {
+    if (tick === 0) return;
     map.setView(point, Math.max(map.getZoom(), 16));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [point[0], point[1]]);
+  }, [tick]);
   return null;
 }
 
@@ -41,6 +47,10 @@ export default function LocationConfirmSheet({ initial, lang, onConfirm, onClose
   );
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
+  // GPS muvaffaqiyatsiz bo'lsa DEFAULT_CENTER manzilini xuddi haqiqiy
+  // joylashuvdek ko'rsatmaslik uchun — foydalanuvchi xaritani qo'lda surishi kerakligini bildiradi.
+  const [locationFailed, setLocationFailed] = useState(false);
+  const [recenterTick, setRecenterTick] = useState(0);
 
   const geocode = (lat: number, lng: number) => {
     setLoading(true);
@@ -49,18 +59,32 @@ export default function LocationConfirmSheet({ initial, lang, onConfirm, onClose
       .finally(() => setLoading(false));
   };
 
-  const locate = () => {
+  const locate = async () => {
+    setLocationFailed(false);
+
+    // Avval Telegram'ning o'z joylashuv menejeri (Bot API 8.0+) — ba'zi
+    // Telegram WebView'larda brauzer Geolocation ruxsat prompt'ini
+    // ko'rsatmasdan darhol xato beradi, Telegram'niki ishonchliroq.
+    const tgLoc = await getTelegramLocation();
+    if (tgLoc) {
+      setCenter([tgLoc.lat, tgLoc.lng]);
+      setRecenterTick((t) => t + 1);
+      geocode(tgLoc.lat, tgLoc.lng);
+      return;
+    }
+
     if (!navigator.geolocation) {
-      geocode(center[0], center[1]);
+      setLocationFailed(true);
       return;
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const point: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         setCenter(point);
+        setRecenterTick((t) => t + 1);
         geocode(point[0], point[1]);
       },
-      () => geocode(center[0], center[1]),
+      () => setLocationFailed(true),
       { enableHighAccuracy: true, timeout: 8000 }
     );
   };
@@ -78,8 +102,8 @@ export default function LocationConfirmSheet({ initial, lang, onConfirm, onClose
     <div className="fixed inset-0 z-50 bg-tg-bg">
       <MapContainer center={center} zoom={15} style={{ height: "100%", width: "100%" }} zoomControl={false}>
         <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        <MoveTracker onMoveEnd={(lat, lng) => { setCenter([lat, lng]); geocode(lat, lng); }} />
-        <Recenter point={center} />
+        <MoveTracker onMoveEnd={(lat, lng) => { setCenter([lat, lng]); setLocationFailed(false); geocode(lat, lng); }} />
+        <Recenter point={center} tick={recenterTick} />
       </MapContainer>
 
       {/* Markazda qotib turuvchi pin — xarita uning ostida suriladi */}
@@ -110,17 +134,36 @@ export default function LocationConfirmSheet({ initial, lang, onConfirm, onClose
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-[18px] font-bold text-slate-900 leading-snug line-clamp-2">
-              {loading ? (lang === "uz" ? "Manzil aniqlanmoqda…" : "Определение адреса…") : address || "..."}
+              {loading
+                ? (lang === "uz" ? "Manzil aniqlanmoqda…" : "Определение адреса…")
+                : locationFailed
+                ? (lang === "uz"
+                    ? "Joylashuv aniqlanmadi — xaritani suring"
+                    : "Не удалось определить местоположение — сдвиньте карту")
+                : address || "..."}
             </h3>
-            {!loading && address && (
+            {!loading && !locationFailed && address && (
               <p className="text-[#FF6B00] text-[11px] font-bold uppercase tracking-wider mt-1.5 flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#FF6B00]" />
                 {address.split(",").pop()?.trim() || (lang === "uz" ? "O'zbekiston" : "Узбекистан")}
               </p>
             )}
+            {!loading && locationFailed && (
+              <button
+                onClick={() => {
+                  if (canOpenTelegramLocationSettings()) openTelegramLocationSettings();
+                  else locate();
+                }}
+                className="text-[#FF6B00] text-[13px] font-bold mt-1.5"
+              >
+                {canOpenTelegramLocationSettings()
+                  ? (lang === "uz" ? "Sozlamalarni ochish" : "Открыть настройки")
+                  : (lang === "uz" ? "Qayta urinish" : "Повторить")}
+              </button>
+            )}
           </div>
         </div>
-        
+
         <button
           onClick={() => onConfirm(center[0], center[1], address)}
           disabled={loading}

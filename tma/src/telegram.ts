@@ -59,5 +59,33 @@ export function haptic(type: "light" | "medium" | "heavy" = "light") {
   tg?.HapticFeedback?.impactOccurred(type);
 }
 
+// Telegram'ning o'z joylashuv menejeri (Bot API 8.0+, eski klientlarda yo'q —
+// LocationManager undefined bo'lsa chaqiruvchi brauzer Geolocation'ga o'tadi).
+export function getTelegramLocation(): Promise<{ lat: number; lng: number } | null> {
+  const lm = tg?.LocationManager;
+  if (!lm) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    lm.init(() => {
+      if (!lm.isLocationAvailable) {
+        resolve(null);
+        return;
+      }
+      lm.getLocation((loc) => resolve(loc ? { lat: loc.latitude, lng: loc.longitude } : null));
+    });
+  });
+}
+
+// Foydalanuvchi Telegram orqali joylashuvni avval rad etgan bo'lsa (isAccessRequested
+// true, isAccessGranted false) — qayta so'rash uchun brauzer permission prompt'i
+// chiqmaydi, faqat Telegram sozlamalarini ochish mumkin.
+export function canOpenTelegramLocationSettings(): boolean {
+  const lm = tg?.LocationManager;
+  return !!lm && lm.isAccessRequested && !lm.isAccessGranted;
+}
+
+export function openTelegramLocationSettings() {
+  tg?.LocationManager?.openSettings();
+}
+
 export const mainButton = tg?.MainButton;
 export const backButton = tg?.BackButton;

@@ -1,3 +1,4 @@
+import { getTelegramLocation } from "../telegram";
 import type { Address, Order, Restaurant, RestaurantDetail, User } from "./types";
 
 const BASE = import.meta.env.VITE_API_URL ?? "https://allfoodapi.webportfolio.uz/api";
@@ -31,25 +32,33 @@ let coordsPromise: Promise<{ lat: number; lng: number } | null> | null = null;
 export function getCoords(): Promise<{ lat: number; lng: number } | null> {
   if (coordsCache !== undefined) return Promise.resolve(coordsCache);
   if (coordsPromise) return coordsPromise;
-  if (!navigator.geolocation) {
-    coordsCache = null;
-    return Promise.resolve(null);
-  }
-  coordsPromise = new Promise<{ lat: number; lng: number } | null>((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        coordsCache = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        resolve(coordsCache);
-      },
-      () => {
+  coordsPromise = getTelegramLocation()
+    .then((tgLoc) => {
+      if (tgLoc) {
+        coordsCache = tgLoc;
+        return tgLoc;
+      }
+      if (!navigator.geolocation) {
         coordsCache = null;
-        resolve(null);
-      },
-      { enableHighAccuracy: true, timeout: 5000 }
-    );
-  }).finally(() => {
-    coordsPromise = null;
-  });
+        return null;
+      }
+      return new Promise<{ lat: number; lng: number } | null>((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            coordsCache = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            resolve(coordsCache);
+          },
+          () => {
+            coordsCache = null;
+            resolve(null);
+          },
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
+      });
+    })
+    .finally(() => {
+      coordsPromise = null;
+    });
   return coordsPromise;
 }
 

@@ -30,9 +30,7 @@ services:
     command: >
       sh -c "python -m app.initdb &&
              python -m app.seed &&
-             gunicorn app.main:app -k uvicorn.workers.UvicornWorker
-             -w $${WEB_CONCURRENCY:-4} -b 0.0.0.0:8000 --timeout 60
-             --access-logfile - --error-logfile -"
+             gunicorn app.main:app -k uvicorn.workers.UvicornWorker -w $${WEB_CONCURRENCY:-4} -b 0.0.0.0:8000 --timeout 60 --access-logfile - --error-logfile -"
     env_file: ./backend/.env
     depends_on:
       postgres:

@@ -33,6 +33,26 @@ interface TelegramWebApp {
     offClick(cb: () => void): void;
   };
   HapticFeedback: { impactOccurred(s: string): void; notificationOccurred(s: string): void };
+  LocationManager?: TelegramLocationManager;
+}
+
+interface TelegramLocationData {
+  latitude: number;
+  longitude: number;
+}
+
+// Bot API 8.0+ — Telegram mijozining o'z joylashuv ruxsat oqimi. Brauzer
+// Geolocation'dan farqli, ba'zi Telegram WebView'larda ruxsat prompt'i
+// ko'rsatilmasdan darhol xato qaytaradigan holatlarda ham ishonchli ishlaydi,
+// va foydalanuvchi avval rad etgan bo'lsa qayta so'rash (openSettings) imkonini beradi.
+interface TelegramLocationManager {
+  isInited: boolean;
+  isLocationAvailable: boolean;
+  isAccessRequested: boolean;
+  isAccessGranted: boolean;
+  init(callback?: () => void): void;
+  getLocation(callback: (location: TelegramLocationData | null) => void): void;
+  openSettings(): void;
 }
 
 interface Window {
