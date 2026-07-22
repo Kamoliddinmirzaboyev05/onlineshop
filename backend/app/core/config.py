@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # Telegram
     bot_token: str = "changeme"
     bot_username: str = "allfoodsuzbot"
-    tma_url: str = "https://onlineshop-tma.vercel.app"
+    tma_url: str = "https://onlineshop-o1fa.vercel.app"
     # Qo'shimcha prod origin'lar (CORS). Bo'sh bo'lsa faqat tma_url ishlatiladi.
     admin_url: str = ""
     courier_url: str = ""
