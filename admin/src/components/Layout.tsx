@@ -1,5 +1,5 @@
 import {
-  Bike, BarChart3, LayoutDashboard, LogOut, MapPinned, Menu, ReceiptText,
+  Bike, BarChart3, LayoutDashboard, LogOut, MapPinned, Megaphone, Menu, ReceiptText,
   Settings, ShoppingBasket, Store, Truck, Users, Warehouse, X,
 } from "lucide-react";
 import { useState } from "react";
@@ -17,6 +17,7 @@ const links = [
   { to: "/warehouse", label: "Ombor", icon: Warehouse },
   { to: "/supplies", label: "Yetkazib berish", icon: Truck },
   { to: "/delivery-zone", label: "Yetkazish hududi", icon: MapPinned },
+  { to: "/post", label: "Post", icon: Megaphone, roles: ["superadmin"] },
   { to: "/reports", label: "Hisobot", icon: BarChart3, roles: ["superadmin"] },
   { to: "/users", label: "Foydalanuvchilar", icon: Users, roles: ["superadmin"] },
   { to: "/couriers", label: "Xodimlar", icon: Bike, roles: ["superadmin"] },

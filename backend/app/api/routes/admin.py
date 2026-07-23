@@ -30,7 +30,7 @@ from app.models import DeliveryZone
 from app.models.enums import AdminRole
 from app.schemas.order import OrderOut, OrderStatusUpdate
 from app.services import webpush
-from app.services.notify import notify_status_change
+from app.services.notify import broadcast_post, notify_status_change
 from app.services.orders import ensure_transition
 
 # Autentifikatsiya poli: hech bir endpoint tokensiz ochilib qolmasligi uchun.
@@ -588,6 +588,34 @@ def list_users(
         .offset(offset)
     ).all()
     return [_user_dict(u) for u in rows]
+
+
+# ── Post — botga mijozlarga xabar yuborish (rasm/matn/ikkalasi) ─
+class _BroadcastIn(BaseModel):
+    text: str = ""
+    image_url: str | None = None
+
+
+@router.post("/broadcast")
+def broadcast(
+    data: _BroadcastIn,
+    background: BackgroundTasks,
+    _principal = Depends(require_store_admin_or_business),
+    store: Restaurant = Depends(current_restaurant),
+    db: Session = Depends(get_db),
+):
+    text = data.text.strip()
+    if not text and not data.image_url:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Matn yoki rasm kerak")
+
+    telegram_ids = db.scalars(
+        select(User.telegram_id)
+        .where(User.id.in_(select(Order.user_id).where(Order.restaurant_id == store.id)))
+        .where(~User.is_blocked)
+    ).all()
+
+    background.add_task(broadcast_post, list(telegram_ids), text, data.image_url)
+    return {"sent_to": len(telegram_ids)}
 
 
 # ── Supply records (yetkazib beruvchilar) ────────────────────────

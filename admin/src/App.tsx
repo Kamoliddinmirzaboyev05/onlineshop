@@ -10,6 +10,7 @@ import DashboardPage from "./pages/DashboardPage";
 import DeliveryZonePage from "./pages/DeliveryZonePage";
 import LoginPage from "./pages/LoginPage";
 import OrdersPage from "./pages/OrdersPage";
+import PostPage from "./pages/PostPage";
 import ProductsPage from "./pages/ProductsPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -95,6 +96,7 @@ export default function App() {
       <Route path="/warehouse" element={<Protected><WarehousePage /></Protected>} />
       <Route path="/supplies" element={<Protected><SuppliesPage /></Protected>} />
       <Route path="/delivery-zone" element={<Protected><DeliveryZonePage /></Protected>} />
+      <Route path="/post" element={<Protected roles={SUPERADMIN}><PostPage /></Protected>} />
       <Route path="/reports" element={<Protected roles={SUPERADMIN}><ReportsPage /></Protected>} />
       <Route path="/users" element={<Protected roles={SUPERADMIN}><UsersPage /></Protected>} />
       <Route path="/couriers" element={<Protected roles={SUPERADMIN}><CouriersPage /></Protected>} />

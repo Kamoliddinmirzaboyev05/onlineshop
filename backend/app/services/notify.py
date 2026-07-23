@@ -44,6 +44,34 @@ def _send_photo(chat_id: int, png: bytes, caption: str = "") -> None:
         pass
 
 
+def _send_photo_url(chat_id: int, photo_url: str, caption: str = "") -> None:
+    try:
+        httpx.post(
+            _PHOTO_API,
+            json={"chat_id": chat_id, "photo": photo_url, "caption": caption, "parse_mode": "HTML"},
+            timeout=10,
+        )
+    except Exception:
+        pass
+
+
+# Telegram caption limiti — 1024 belgi. Undan uzun bo'lsa, rasm keption'siz,
+# matn alohida xabar sifatida yuboriladi (aks holda API xato qaytaradi).
+_CAPTION_LIMIT = 1024
+
+
+def broadcast_post(telegram_ids: list[int], text: str, photo_url: str | None) -> None:
+    """Admin/tadbirkor panelidan mijozlarga bot orqali post yuborish (rasm/matn/ikkalasi)."""
+    for tid in telegram_ids:
+        if photo_url and len(text) <= _CAPTION_LIMIT:
+            _send_photo_url(tid, photo_url, caption=text)
+        elif photo_url:
+            _send_photo_url(tid, photo_url)
+            _send(tid, text)
+        else:
+            _send(tid, text)
+
+
 def _ask_location(chat_id: int) -> None:
     try:
         httpx.post(_API, json={
@@ -129,13 +157,25 @@ def notify_status_change(order: Order, user_telegram_id: int) -> None:
 
 
 def notify_delivering_eta(
-    order: Order, user_telegram_id: int, eta_minutes: int | None, distance_km: float | None
+    order: Order,
+    user_telegram_id: int,
+    eta_minutes: int | None,
+    distance_km: float | None,
+    courier_name: str | None = None,
+    courier_phone: str | None = None,
 ) -> None:
-    """Kuryer 'yetkazilmoqda' bosganda — masofa + taxminiy yetkazib berish vaqti."""
+    """Kuryer 'yetkazilmoqda' bosganda — masofa + taxminiy yetkazib berish vaqti + kuryer ma'lumoti."""
     lines = [f"🛵 <b>Buyurtmangiz yo'lda · № {order.number}</b>"]
     if eta_minutes:
         lines.append(f"⏱ Taxminan <b>{eta_minutes} daqiqada</b> yetkaziladi")
         lines.append(f"⏱ Ориентировочно через <b>{eta_minutes} мин</b>")
     if distance_km:
         lines.append(f"📍 Masofa: ~{distance_km:g} km")
+    if courier_name or courier_phone:
+        lines.append("")
+        lines.append("🚴 <b>Kuryer:</b>")
+        if courier_name:
+            lines.append(f"👤 {courier_name}")
+        if courier_phone:
+            lines.append(f"📞 {courier_phone}")
     _send(user_telegram_id, "\n".join(lines))

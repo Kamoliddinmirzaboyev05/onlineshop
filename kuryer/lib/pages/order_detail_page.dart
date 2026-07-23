@@ -22,6 +22,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   late final Resource<Order> _res;
   bool _updating = false;
   bool _popped = false;
+  
+  OrderItem? _editingItem;
+  final TextEditingController _qtyController = TextEditingController();
 
   @override
   void initState() {
@@ -54,7 +57,37 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   @override
   void dispose() {
     _res.dispose();
+    _qtyController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleAdjust() async {
+    final order = _res.data;
+    final item = _editingItem;
+    if (order == null || item == null) return;
+
+    final qtyStr = _qtyController.text.replaceAll(',', '.');
+    final qty = double.tryParse(qtyStr);
+    if (qty == null || qty < 0) {
+      toast.error("Noto'g'ri miqdor");
+      return;
+    }
+
+    setState(() => _updating = true);
+    try {
+      await api.patch('/courier/orders/${order.id}/adjust', {
+        'items': [
+          {'order_item_id': item.id, 'quantity': qty}
+        ]
+      });
+      toast.success("Miqdor yangilandi ✅");
+      _res.refresh();
+      if (mounted) setState(() => _editingItem = null);
+    } catch (_) {
+      toast.error("Miqdorni o'zgartirib bo'lmadi");
+    } finally {
+      if (mounted) setState(() => _updating = false);
+    }
   }
 
   Future<void> _setStatus(String status) async {
@@ -110,8 +143,117 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 onRetry: _res.refresh,
               );
             }
-            return _content(order);
+            return Stack(
+              children: [
+                _content(order),
+                if (_editingItem != null) _buildEditModal(),
+              ],
+            );
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditModal() {
+    final item = _editingItem!;
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.4),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.all(16),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(maxWidth: 380),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 10))
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Miqdorni tahrirlash',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      GestureDetector(
+                        onTap: () => setState(() => _editingItem = null),
+                        child: const Icon(Icons.close, color: AppColors.slate400),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: AppColors.slate100),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          _ItemThumb(imageUrl: item.imageUrl),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(item.nameUz,
+                                    style: const TextStyle(fontWeight: FontWeight.w500)),
+                                const SizedBox(height: 2),
+                                Text("${money(item.price)} so'm / ${item.unit ?? 'dona'}",
+                                    style: const TextStyle(fontSize: 14, color: AppColors.slate500)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text("Yangi miqdor (${item.unit ?? 'dona'})",
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.slate700)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _qtyController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          hintText: 'Masalan: ${item.quantity}',
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.slate200),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.slate200),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.brand, width: 2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      AppButton(
+                        label: _updating ? 'Saqlanmoqda...' : 'Saqlash',
+                        expand: true,
+                        color: AppColors.brand,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        onPressed: (_updating || _qtyController.text.isEmpty) ? null : _handleAdjust,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -258,7 +400,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       color: AppColors.slate500,
                       letterSpacing: 0.5)),
               const SizedBox(height: 12),
-              ...order.items.map(_itemRow),
+              ...order.items.map((it) => _itemRow(it, order.status)),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 10),
                 child: Divider(height: 1, color: AppColors.slate100),
@@ -342,7 +484,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  Widget _itemRow(OrderItem it) {
+  Widget _itemRow(OrderItem it, String orderStatus) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -377,8 +519,39 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             ),
           ),
           const SizedBox(width: 12),
-          Text("${money(it.price * it.quantity)} so'm",
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text("${money(it.price * it.quantity)} so'm",
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              if (_isAcceptable(orderStatus)) ...[
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _editingItem = it;
+                      _qtyController.text = it.quantity.toString();
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.blue600.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.edit, size: 12, color: AppColors.blue600),
+                        SizedBox(width: 4),
+                        Text('Tahrirlash',
+                            style: TextStyle(fontSize: 12, color: AppColors.blue600, fontWeight: FontWeight.w500)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ],
       ),
     );

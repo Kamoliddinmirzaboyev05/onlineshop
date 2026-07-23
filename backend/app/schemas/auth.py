@@ -6,6 +6,18 @@ from pydantic import BaseModel
 class TelegramAuthIn(BaseModel):
     init_data: str
 
+class AppRegisterIn(BaseModel):
+    phone: str
+    password: str
+    first_name: str
+
+class AppLoginIn(BaseModel):
+    phone: str
+    password: str
+
+class FCMTokenIn(BaseModel):
+    fcm_token: str
+
 
 class AdminLoginIn(BaseModel):
     username: str
@@ -19,7 +31,7 @@ class TokenOut(BaseModel):
 
 class UserOut(BaseModel):
     id: int
-    telegram_id: int
+    telegram_id: int | None = None
     username: str | None = None
     first_name: str | None = None
     last_name: str | None = None

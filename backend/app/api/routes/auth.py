@@ -5,9 +5,9 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.core.db import get_db
 from app.core.ratelimit import rate_limiter
-from app.core.security import create_access_token, verify_telegram_init_data
+from app.core.security import create_access_token, verify_telegram_init_data, hash_password, verify_password
 from app.models import User
-from app.schemas.auth import AuthResult, TelegramAuthIn, TokenOut, UserOut, UserUpdateIn
+from app.schemas.auth import AuthResult, TelegramAuthIn, TokenOut, UserOut, UserUpdateIn, AppRegisterIn, AppLoginIn, FCMTokenIn
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -40,6 +40,41 @@ def telegram_auth(data: TelegramAuthIn, db: Session = Depends(get_db)):
 
     token = create_access_token(subject=user.id, role="user")
     return AuthResult(token=TokenOut(access_token=token), user=UserOut.model_validate(user))
+
+
+@router.post("/register", response_model=AuthResult)
+def app_register(data: AppRegisterIn, db: Session = Depends(get_db)):
+    if db.scalar(select(User).where(User.phone == data.phone)):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Phone number already registered")
+    
+    user = User(
+        phone=data.phone,
+        password_hash=hash_password(data.password),
+        first_name=data.first_name,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    token = create_access_token(subject=user.id, role="user")
+    return AuthResult(token=TokenOut(access_token=token), user=UserOut.model_validate(user))
+
+
+@router.post("/login", response_model=AuthResult)
+def app_login(data: AppLoginIn, db: Session = Depends(get_db)):
+    user = db.scalar(select(User).where(User.phone == data.phone))
+    if not user or not user.password_hash or not verify_password(data.password, user.password_hash):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid phone or password")
+        
+    token = create_access_token(subject=user.id, role="user")
+    return AuthResult(token=TokenOut(access_token=token), user=UserOut.model_validate(user))
+
+
+@router.post("/fcm-token")
+def update_fcm_token(data: FCMTokenIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    user.fcm_token = data.fcm_token
+    db.commit()
+    return {"status": "ok"}
 
 
 @router.get("/me", response_model=UserOut)

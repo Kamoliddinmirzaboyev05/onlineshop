@@ -219,6 +219,8 @@ def courier_update_order(
             order.user.telegram_id,
             order.eta_minutes,
             order.distance_km,
+            courier.name,
+            courier.phone,
         )
     return order
 
