@@ -29,8 +29,9 @@ class Restaurant(Base):
     lat: Mapped[float | None] = mapped_column(Float)
     lng: Mapped[float | None] = mapped_column(Float)
     rating: Mapped[float] = mapped_column(Float, default=0.0)
-    delivery_fee: Mapped[int] = mapped_column(Integer, default=0)         # in soʻm
-    min_order: Mapped[int] = mapped_column(Integer, default=0)
+    # delivery_fee — km uchun yetkazish (soʻm/km); min_order — bepul yetkazish chegarasi (soʻm).
+    delivery_fee: Mapped[int] = mapped_column(Integer, default=2000)
+    min_order: Mapped[int] = mapped_column(Integer, default=50_000)
     avg_delivery_minutes: Mapped[int] = mapped_column(Integer, default=40)
     is_open: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

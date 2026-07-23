@@ -37,6 +37,8 @@ export default function SettingsPage() {
   const [owner, setOwner] = useState("");
   const [phones, setPhones] = useState<string[]>([""]);
   const [socials, setSocials] = useState<Record<string, string>>({});
+  const [minOrder, setMinOrder] = useState(50_000);
+  const [deliveryPerKm, setDeliveryPerKm] = useState(2_000);
 
   const load = () => {
     setErr(false);
@@ -52,6 +54,8 @@ export default function SettingsPage() {
         setOwner(s.owner_name ?? "");
         setPhones(s.phones?.length ? s.phones : [""]);
         setSocials(s.socials ?? {});
+        setMinOrder(s.min_order > 0 ? s.min_order : 50_000);
+        setDeliveryPerKm(s.delivery_fee > 0 ? s.delivery_fee : 2_000);
         setLoading(false);
       })
       .catch(() => { setErr(true); setLoading(false); });
@@ -84,9 +88,13 @@ export default function SettingsPage() {
         owner_name: owner.trim() || null,
         phones: phones.map((p) => p.trim()).filter(Boolean),
         socials: cleanSocials,
+        min_order: Math.max(0, Math.round(minOrder) || 0),
+        delivery_fee: Math.max(0, Math.round(deliveryPerKm) || 0),
       });
       setPhones(updated.phones?.length ? updated.phones : [""]);
       setSocials(updated.socials ?? {});
+      setMinOrder(updated.min_order > 0 ? updated.min_order : 50_000);
+      setDeliveryPerKm(updated.delivery_fee > 0 ? updated.delivery_fee : 2_000);
       toast.success("Sozlamalar saqlandi");
     } catch {
       toast.error("Saqlab bo'lmadi");
@@ -192,6 +200,44 @@ export default function SettingsPage() {
               <button type="button" onClick={addPhone} className="btn-ghost mt-2 text-sm">
                 <Plus size={15} /> Raqam qo'shish
               </button>
+            </div>
+          </div>
+
+          {/* Yetkazish */}
+          <div className="card p-5 space-y-4">
+            <h2 className="font-semibold text-slate-800">Yetkazish narxi</h2>
+            <p className="text-sm text-slate-500">
+              Mahsulotlar jami bu summadan kam bo‘lsa — har km uchun to‘lov; teng yoki yuqori bo‘lsa — yetkazish bepul.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Bepul yetkazish (so‘m)
+                </label>
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  step={1000}
+                  value={minOrder}
+                  onChange={(e) => setMinOrder(Number(e.target.value))}
+                />
+                <p className="text-xs text-slate-400 mt-1">Masalan 50000 — shu summadan bepul</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  1 km narxi (so‘m)
+                </label>
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  step={100}
+                  value={deliveryPerKm}
+                  onChange={(e) => setDeliveryPerKm(Number(e.target.value))}
+                />
+                <p className="text-xs text-slate-400 mt-1">Masalan 2000 — har km ga 2000 so‘m</p>
+              </div>
             </div>
           </div>
 

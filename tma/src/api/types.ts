@@ -56,6 +56,8 @@ export interface Restaurant {
   delivery_fee: number;
   min_order: number;
   avg_delivery_minutes: number;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export interface RestaurantDetail extends Restaurant {

@@ -1,4 +1,5 @@
 import secrets
+from math import ceil
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, update
@@ -16,6 +17,32 @@ from app.services.geo import (
     reverse_geocode,
     zone_is_configured,
 )
+
+# Default: 50 000 so'mdan bepul yetkazish; undan kam — har km ga 2 000 so'm.
+DEFAULT_FREE_DELIVERY_FROM = 50_000
+DEFAULT_DELIVERY_PER_KM = 2_000
+
+
+def calc_delivery_fee(
+    items_total: int,
+    distance_km: float | None,
+    free_from: int,
+    per_km: int,
+) -> int:
+    """Yetkazish haqi: items_total >= free_from → 0; aks holda ceil(km) * per_km.
+
+    free_from/per_km <= 0 bo'lsa default qiymatlar ishlatiladi (mavjud do'konlar
+    0 saqlagan bo'lishi mumkin).
+    """
+    threshold = free_from if free_from > 0 else DEFAULT_FREE_DELIVERY_FROM
+    rate = per_km if per_km > 0 else DEFAULT_DELIVERY_PER_KM
+    if items_total >= threshold:
+        return 0
+    if distance_km is None or distance_km <= 0:
+        # Masofa noma'lum — kamida 1 km deb hisoblaymiz.
+        return rate
+    return int(ceil(distance_km) * rate)
+
 
 # Buyurtma holatlari grafi — faqat ruxsat etilgan o'tishlar.
 # Bekor qilish (cancelled) yetkazilgan/bekor qilingandan tashqari har qaysidan mumkin.
@@ -137,16 +164,17 @@ def create_order(db: Session, user: User, data: OrderCreateIn) -> Order:
             )
         )
 
-    if items_total < restaurant.min_order:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            f"Minimum order is {restaurant.min_order}",
-        )
-
-    delivery_fee = restaurant.delivery_fee
-
     # Do'kon ↔ mijoz masofasi (km) — origin: restaurant.lat/lng yoki zona markazi.
     distance_km = distance_to_user(restaurant, zone, lat, lng)
+
+    # Yetkazish: min_order = bepul chegarasi (default 50k), delivery_fee = so'm/km (default 2k).
+    delivery_fee = calc_delivery_fee(
+        items_total,
+        distance_km,
+        free_from=restaurant.min_order,
+        per_km=restaurant.delivery_fee,
+    )
+
 
     # Raqam unikal — noyob kolliziyada qayta urinamiz (IntegrityError).
     for _attempt in range(5):

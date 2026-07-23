@@ -91,6 +91,9 @@ class StoreSettingsIn(BaseModel):
     socials: dict[str, str] = {}
     lat: float | None = None
     lng: float | None = None
+    # Yetkazish: min_order = bepul chegara (so'm); delivery_fee = so'm/km.
+    min_order: int = 50_000
+    delivery_fee: int = 2_000
 
 
 class RestaurantDetail(RestaurantOut):
@@ -109,8 +112,8 @@ class RestaurantIn(BaseModel):
     cover_url: str | None = None
     is_active: bool = True
     is_open: bool = True
-    delivery_fee: int = 0
-    min_order: int = 0
+    delivery_fee: int = 2000   # so'm/km
+    min_order: int = 50_000    # bepul yetkazish chegarasi
     avg_delivery_minutes: int = 40
 
 

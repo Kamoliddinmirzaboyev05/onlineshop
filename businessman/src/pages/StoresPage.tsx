@@ -20,8 +20,8 @@ const emptyEdit: StoreInput = {
   owner_name: "",
   phones: [],
   socials: {},
-  delivery_fee: 0,
-  min_order: 0,
+  delivery_fee: 2000,
+  min_order: 50_000,
   avg_delivery_minutes: 30,
   is_active: true,
   is_open: true,
@@ -258,11 +258,11 @@ export default function StoresPage() {
 
                     <div className="pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
                       <div>
-                        <div className="flex items-center justify-center gap-1 text-[11px] text-slate-400"><Truck size={11} /> Yetkazish</div>
+                        <div className="flex items-center justify-center gap-1 text-[11px] text-slate-400"><Truck size={11} /> /km</div>
                         <div className="text-xs font-semibold text-slate-700 mt-0.5">{money(s.delivery_fee)} so'm</div>
                       </div>
                       <div>
-                        <div className="text-[11px] text-slate-400">Min. buyurtma</div>
+                        <div className="text-[11px] text-slate-400">Bepul dan</div>
                         <div className="text-xs font-semibold text-slate-700 mt-0.5">{money(s.min_order)} so'm</div>
                       </div>
                       <div>
@@ -400,7 +400,7 @@ export default function StoresPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <label className="block">
-                    <span className="text-xs text-slate-500">Yetkazish narxi</span>
+                    <span className="text-xs text-slate-500">1 km narxi (so‘m)</span>
                     <input
                       className="input mt-1"
                       type="number"
@@ -409,7 +409,7 @@ export default function StoresPage() {
                     />
                   </label>
                   <label className="block">
-                    <span className="text-xs text-slate-500">Min. buyurtma</span>
+                    <span className="text-xs text-slate-500">Bepul yetkazish dan (so‘m)</span>
                     <input
                       className="input mt-1"
                       type="number"

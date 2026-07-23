@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, getCoords } from "../api/client";
+import type { Restaurant } from "../api/types";
 import PageHeader from "../components/PageHeader";
 import { useI18n } from "../i18n";
 import { formatUzPhone, money } from "../lib/format";
@@ -9,6 +10,9 @@ import { useAuth } from "../store/auth";
 import { useCart } from "../store/cart";
 import { useCheckoutDraft } from "../store/checkoutDraft";
 import { haptic } from "../telegram";
+
+const DEFAULT_FREE_FROM = 50_000;
+const DEFAULT_PER_KM = 2_000;
 
 /** Backend xato matnini ({"detail": "..."}) ajratib oladi. */
 function errorText(e: unknown): string {
@@ -25,6 +29,31 @@ function errorText(e: unknown): string {
   return raw;
 }
 
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371.0088;
+  const toR = (d: number) => (d * Math.PI) / 180;
+  const dlat = toR(lat2 - lat1);
+  const dlng = toR(lng2 - lng1);
+  const a =
+    Math.sin(dlat / 2) ** 2 +
+    Math.cos(toR(lat1)) * Math.cos(toR(lat2)) * Math.sin(dlng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/** Backend calc_delivery_fee bilan bir xil qoida. */
+function estimateDeliveryFee(
+  itemsTotal: number,
+  distanceKm: number | null,
+  freeFrom: number,
+  perKm: number,
+): number {
+  const threshold = freeFrom > 0 ? freeFrom : DEFAULT_FREE_FROM;
+  const rate = perKm > 0 ? perKm : DEFAULT_PER_KM;
+  if (itemsTotal >= threshold) return 0;
+  if (distanceKm == null || distanceKm <= 0) return rate;
+  return Math.ceil(distanceKm) * rate;
+}
+
 export default function CheckoutPage() {
   const { t, lang } = useI18n();
   const nav = useNavigate();
@@ -34,6 +63,7 @@ export default function CheckoutPage() {
   const { phone, comment, loc, address, setPhone, setComment, setLocation, reset: resetDraft } = useCheckoutDraft();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [store, setStore] = useState<Restaurant | null>(null);
 
   // Qoralamada telefon hali bo'sh bo'lsa, profildagi raqam bilan to'ldiramiz.
   useEffect(() => {
@@ -58,7 +88,25 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (cart.restaurantId == null) return;
+    api.restaurant(cart.restaurantId).then(setStore).catch(() => setStore(null));
+  }, [cart.restaurantId]);
+
   const lines = Object.values(cart.lines);
+  const itemsTotal = cart.total();
+  const freeFrom = store && store.min_order > 0 ? store.min_order : DEFAULT_FREE_FROM;
+  const perKm = store && store.delivery_fee > 0 ? store.delivery_fee : DEFAULT_PER_KM;
+
+  const deliveryFee = useMemo(() => {
+    let dist: number | null = null;
+    if (loc && store?.lat != null && store?.lng != null) {
+      dist = haversineKm(store.lat, store.lng, loc.lat, loc.lng);
+    }
+    return estimateDeliveryFee(itemsTotal, dist, freeFrom, perKm);
+  }, [itemsTotal, loc, store, freeFrom, perKm]);
+
+  const grandTotal = itemsTotal + deliveryFee;
 
   const submit = async () => {
     if (cart.restaurantId == null) {
@@ -136,9 +184,30 @@ export default function CheckoutPage() {
           />
         </div>
 
-        <div className="flex justify-between items-center font-extrabold text-[20px] text-slate-900 mt-8 mb-4 px-1">
-          <span>{lang === "uz" ? "Jami" : "Итого"}</span>
-          <span>{money(cart.total())} {t.sum}</span>
+        <div className="mt-6 space-y-2 px-1">
+          <div className="flex justify-between text-[15px] text-slate-600">
+            <span>{lang === "uz" ? "Mahsulotlar" : "Товары"}</span>
+            <span>{money(itemsTotal)} {t.sum}</span>
+          </div>
+          <div className="flex justify-between text-[15px] text-slate-600">
+            <span>{lang === "uz" ? "Yetkazish" : "Доставка"}</span>
+            <span>
+              {deliveryFee === 0
+                ? t.free
+                : `${money(deliveryFee)} ${t.sum}`}
+            </span>
+          </div>
+          {itemsTotal < freeFrom && (
+            <p className="text-[12px] text-slate-400">
+              {lang === "uz"
+                ? `${money(freeFrom)} so‘mdan bepul yetkazish · ${money(perKm)} so‘m/km`
+                : `Бесплатная доставка от ${money(freeFrom)} сум · ${money(perKm)} сум/км`}
+            </p>
+          )}
+          <div className="flex justify-between items-center font-extrabold text-[20px] text-slate-900 pt-2">
+            <span>{lang === "uz" ? "Jami" : "Итого"}</span>
+            <span>{money(grandTotal)} {t.sum}</span>
+          </div>
         </div>
 
         {error && <p className="text-rose-500 text-sm font-medium px-1 mb-2">{error}</p>}

@@ -64,8 +64,8 @@ class StoreCreateIn(BaseModel):
     socials: dict[str, str] = {}
     lat: float | None = None
     lng: float | None = None
-    delivery_fee: int = 0
-    min_order: int = 0
+    delivery_fee: int = 2000   # so'm/km (50k dan kam buyurtmada)
+    min_order: int = 50_000    # bepul yetkazish chegarasi (so'm)
     avg_delivery_minutes: int = 40
     is_active: bool = True
     is_open: bool = True

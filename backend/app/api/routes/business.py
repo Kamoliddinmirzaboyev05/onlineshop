@@ -58,7 +58,12 @@ def create_store(
     yaratadi. Login butun tizim bo'ylab yagona bo'lishi shart."""
     if db.scalar(select(AdminUser).where(AdminUser.username == data.staff_username)):
         raise HTTPException(status.HTTP_409_CONFLICT, "Bu login band")
-    store = Restaurant(name=data.name, business_id=business.id)
+    store = Restaurant(
+        name=data.name,
+        business_id=business.id,
+        delivery_fee=2000,
+        min_order=50_000,
+    )
     db.add(store)
     db.flush()  # store.id kerak
     db.add(AdminUser(
