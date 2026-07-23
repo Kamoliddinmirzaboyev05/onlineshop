@@ -17,6 +17,7 @@ import {
   statusLabel,
   statusPill,
 } from "../lib/format";
+import { isAcceptableOrderStatus, isAdjustableOrderStatus } from "../lib/orderActions";
 import type { Order, OrderStatus, OrderItem } from "../types";
 
 const POLL_INTERVAL_MS = 15000;
@@ -230,7 +231,7 @@ export default function OrderDetailPage() {
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0 self-start">
                   <span className="font-semibold">{money(it.price * it.quantity)} so'm</span>
-                  {["pending", "confirmed", "preparing", "ready"].includes(order.status) && (
+                  {isAdjustableOrderStatus(order.status) && (
                     <button
                       onClick={() => {
                         setEditingItem(it);
@@ -258,7 +259,7 @@ export default function OrderDetailPage() {
       </motion.div>
 
       <div className="space-y-2">
-        {["pending", "confirmed", "preparing", "ready"].includes(order.status) && (
+        {isAcceptableOrderStatus(order.status) && (
           <motion.button
             whileTap={tap}
             className="w-full py-3.5 rounded-2xl bg-cyan-600 text-white font-bold text-base shadow-lg shadow-cyan-200 transition disabled:opacity-50"

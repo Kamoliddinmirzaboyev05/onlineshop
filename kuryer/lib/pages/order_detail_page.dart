@@ -524,7 +524,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             children: [
               Text("${money(it.price * it.quantity)} so'm",
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-              if (_isAcceptable(orderStatus)) ...[
+              if (_isAdjustable(orderStatus)) ...[
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () {
@@ -560,6 +560,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
 const _acceptable = {'pending', 'confirmed', 'preparing', 'ready'};
 bool _isAcceptable(String s) => _acceptable.contains(s);
+
+// Backend: accepted / preparing / ready da miqdor o'zgartirish mumkin.
+const _adjustable = {'accepted', 'preparing', 'ready'};
+bool _isAdjustable(String s) => _adjustable.contains(s);
 
 class _ItemThumb extends StatelessWidget {
   const _ItemThumb({this.imageUrl});

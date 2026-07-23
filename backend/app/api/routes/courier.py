@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.api.deps import get_current_admin
 from app.core.config import settings
 from app.core.db import get_db
-from app.models import AdminUser, Order, PushSubscription
+from app.models import AdminUser, Order, PushSubscription, User
 from app.models.enums import AdminRole, OrderStatus
 from app.schemas.admin import PushSubscriptionIn
 from app.schemas.courier import (
@@ -92,7 +92,11 @@ def courier_order(
     courier: AdminUser = Depends(get_current_courier),
     db: Session = Depends(get_db),
 ):
-    order = db.get(Order, order_id)
+    order = db.scalar(
+        select(Order)
+        .where(Order.id == order_id)
+        .options(selectinload(Order.items), selectinload(Order.assigned_courier))
+    )
     # O'z do'konidan, o'ziniki yoki hali biriktirilmagan buyurtmani ko'rishi mumkin.
     if (
         not order
@@ -110,7 +114,11 @@ def courier_adjust_order(
     courier: AdminUser = Depends(get_current_courier),
     db: Session = Depends(get_db),
 ):
-    order = db.get(Order, order_id)
+    order = db.scalar(
+        select(Order)
+        .where(Order.id == order_id)
+        .options(selectinload(Order.items))
+    )
     if not order or order.assigned_courier_id != courier.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Order not found")
 
@@ -132,6 +140,7 @@ def courier_adjust_order(
     order.items = [item for item in order.items if item.quantity > 0]
 
     order.items_total = round(new_items_total)
+    # Yetkazish haqi o'zgarmaydi (masofa/chegara buyurtma paytida hisoblangan).
     order.total = order.items_total + order.delivery_fee
 
     db.commit()
@@ -155,6 +164,11 @@ def courier_update_order(
     order = db.get(Order, order_id)
     if not order or order.restaurant_id != courier.restaurant_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Order not found")
+
+    # User ma'lumotini commitdan oldin o'qiymiz (lazy-load/detached xavfisiz).
+    customer = db.get(User, order.user_id)
+    user_tg = customer.telegram_id if customer else None
+    user_lang = (customer.language if customer else None) or "uz"
 
     now = datetime.now(timezone.utc)
     is_accept = data.status == OrderStatus.accepted
@@ -200,10 +214,6 @@ def courier_update_order(
     order.status = data.status
     db.commit()
     db.refresh(order)
-
-    # Background task uchun sessiondan mustaqil qiymatlar (detached Order xavfi).
-    user_tg = order.user.telegram_id if order.user else None
-    user_lang = (order.user.language if order.user else None) or "uz"
 
     # "Qabul qilindi" — mijoz tilida + kuryer ismi/telefon + admin push.
     if notify_accept and user_tg:
@@ -255,14 +265,15 @@ def courier_mark_delivered(
             status.HTTP_400_BAD_REQUEST,
             "Faqat 'yetkazilmoqda' holatidagi buyurtmani yakunlash mumkin",
         )
+    customer = db.get(User, order.user_id)
+    user_tg = customer.telegram_id if customer else None
+    user_lang = (customer.language if customer else None) or "uz"
     ensure_transition(order.status, OrderStatus.delivered)
     order.courier_delivered_at = datetime.now(timezone.utc)
     decrement_stock_atomic(db, order)
     order.status = OrderStatus.delivered
     db.commit()
     db.refresh(order)
-    user_tg = order.user.telegram_id if order.user else None
-    user_lang = (order.user.language if order.user else None) or "uz"
     if user_tg:
         background.add_task(
             notify_status_change,
