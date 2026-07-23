@@ -544,7 +544,10 @@ def update_order_status(
 
     db.commit()
     db.refresh(order)
-    background.add_task(notify_status_change, order, order.user.telegram_id)
+    user_tg = order.user.telegram_id if order.user else None
+    user_lang = (order.user.language if order.user else None) or "uz"
+    if user_tg:
+        background.add_task(notify_status_change, order, user_tg, user_lang)
     return order
 
 

@@ -201,9 +201,20 @@ def courier_update_order(
     db.commit()
     db.refresh(order)
 
-    # "Qabul qilindi" — mijozga status xabari (bot) + admin panelga push.
-    if notify_accept:
-        background.add_task(notify_status_change, order, order.user.telegram_id)
+    # Background task uchun sessiondan mustaqil qiymatlar (detached Order xavfi).
+    user_tg = order.user.telegram_id if order.user else None
+    user_lang = (order.user.language if order.user else None) or "uz"
+
+    # "Qabul qilindi" — mijoz tilida + kuryer ismi/telefon + admin push.
+    if notify_accept and user_tg:
+        background.add_task(
+            notify_status_change,
+            order,
+            user_tg,
+            user_lang,
+            courier.name,
+            courier.phone,
+        )
         background.add_task(
             webpush.notify_admins,
             f"✅ Buyurtma qabul qilindi № {order.number}",
@@ -211,16 +222,17 @@ def courier_update_order(
             url="/orders",
             tag=f"accepted-{order.id}",
         )
-    # "Yetkazilmoqda" — mijozga masofa + ETA xabari (bot).
-    if notify_eta:
+    # "Yetkazilmoqda" — mijoz tilida masofa + ETA + kuryer.
+    if notify_eta and user_tg:
         background.add_task(
             notify_delivering_eta,
             order,
-            order.user.telegram_id,
+            user_tg,
             order.eta_minutes,
             order.distance_km,
             courier.name,
             courier.phone,
+            user_lang,
         )
     return order
 
@@ -249,7 +261,17 @@ def courier_mark_delivered(
     order.status = OrderStatus.delivered
     db.commit()
     db.refresh(order)
-    background.add_task(notify_status_change, order, order.user.telegram_id)
+    user_tg = order.user.telegram_id if order.user else None
+    user_lang = (order.user.language if order.user else None) or "uz"
+    if user_tg:
+        background.add_task(
+            notify_status_change,
+            order,
+            user_tg,
+            user_lang,
+            courier.name,
+            courier.phone,
+        )
     background.add_task(
         webpush.notify_admins,
         f"🎉 Buyurtma yetkazildi № {order.number}",

@@ -13,16 +13,54 @@ from app.services import webpush
 _API = f"https://api.telegram.org/bot{settings.bot_token}/sendMessage"
 _PHOTO_API = f"https://api.telegram.org/bot{settings.bot_token}/sendPhoto"
 
-_STATUS_TEXT = {
-    "pending": "🆕 Buyurtmangiz qabul qilindi / Заказ принят",
-    "confirmed": "✅ Buyurtma tasdiqlandi / Заказ подтверждён",
-    "preparing": "👨‍🍳 Tayyorlanmoqda / Готовится",
-    "ready": "📦 Tayyor / Готов",
-    "accepted": "✅ Kuryer qabul qildi / Курьер принял заказ",
-    "delivering": "🛵 Yetkazilmoqda / В пути",
-    "delivered": "🎉 Yetkazib berildi / Доставлен",
-    "cancelled": "❌ Bekor qilindi / Отменён",
+# Mijoz tiliga qarab — bitta tilda (uz | ru), ikkalasi aralashmaydi.
+_STATUS_TEXT: dict[str, dict[str, str]] = {
+    "uz": {
+        "pending": "🆕 Buyurtmangiz qabul qilindi",
+        "confirmed": "✅ Buyurtma tasdiqlandi",
+        "preparing": "👨‍🍳 Buyurtma tayyorlanmoqda",
+        "ready": "📦 Buyurtma tayyor",
+        "accepted": "✅ Kuryer buyurtmani qabul qildi",
+        "delivering": "🛵 Buyurtmangiz yo'lda",
+        "delivered": "🎉 Buyurtma yetkazib berildi",
+        "cancelled": "❌ Buyurtma bekor qilindi",
+    },
+    "ru": {
+        "pending": "🆕 Ваш заказ принят",
+        "confirmed": "✅ Заказ подтверждён",
+        "preparing": "👨‍🍳 Заказ готовится",
+        "ready": "📦 Заказ готов",
+        "accepted": "✅ Курьер принял заказ",
+        "delivering": "🛵 Ваш заказ в пути",
+        "delivered": "🎉 Заказ доставлен",
+        "cancelled": "❌ Заказ отменён",
+    },
 }
+
+
+def _lang(lang: str | None) -> str:
+    return lang if lang in _STATUS_TEXT else "uz"
+
+
+def _status_line(status: str, lang: str | None) -> str:
+    l = _lang(lang)
+    return _STATUS_TEXT[l].get(status, _STATUS_TEXT["uz"].get(status, ""))
+
+
+def _courier_block(
+    lang: str | None,
+    courier_name: str | None,
+    courier_phone: str | None,
+) -> list[str]:
+    if not courier_name and not courier_phone:
+        return []
+    l = _lang(lang)
+    lines = ["", "🚴 <b>Kuryer:</b>" if l == "uz" else "🚴 <b>Курьер:</b>"]
+    if courier_name:
+        lines.append(f"👤 {courier_name}")
+    if courier_phone:
+        lines.append(f"📞 {courier_phone}")
+    return lines
 
 
 def _send(chat_id: int, text: str) -> None:
@@ -150,10 +188,40 @@ def notify_location_update(order_number: str, lat: float, lng: float) -> None:
         _send(settings.orders_chat_id, f"📍 Buyurtma <b>{order_number}</b> joylashuvi:\n{maps_url}")
 
 
-def notify_status_change(order: Order, user_telegram_id: int) -> None:
-    text = _STATUS_TEXT.get(order.status.value, "")
-    if text:
-        _send(user_telegram_id, f"{text}\n№ {order.number}")
+def build_status_message(
+    status: str,
+    order_number: str,
+    lang: str | None = "uz",
+    courier_name: str | None = None,
+    courier_phone: str | None = None,
+) -> str:
+    """Test va yuborish uchun status matnini yig'adi (bitta til)."""
+    text = _status_line(status, lang)
+    if not text:
+        return ""
+    lines = [text, f"№ {order_number}"]
+    # Kuryer qabul qilganda (accepted) yoki yo'lda (delivering) — ism/telefon.
+    if status in {"accepted", "delivering"}:
+        lines.extend(_courier_block(lang, courier_name, courier_phone))
+    return "\n".join(lines)
+
+
+def notify_status_change(
+    order: Order,
+    user_telegram_id: int,
+    lang: str | None = "uz",
+    courier_name: str | None = None,
+    courier_phone: str | None = None,
+) -> None:
+    msg = build_status_message(
+        order.status.value,
+        order.number,
+        lang=lang,
+        courier_name=courier_name,
+        courier_phone=courier_phone,
+    )
+    if msg:
+        _send(user_telegram_id, msg)
 
 
 def notify_delivering_eta(
@@ -163,19 +231,21 @@ def notify_delivering_eta(
     distance_km: float | None,
     courier_name: str | None = None,
     courier_phone: str | None = None,
+    lang: str | None = "uz",
 ) -> None:
-    """Kuryer 'yetkazilmoqda' bosganda — masofa + taxminiy yetkazib berish vaqti + kuryer ma'lumoti."""
-    lines = [f"🛵 <b>Buyurtmangiz yo'lda · № {order.number}</b>"]
-    if eta_minutes:
-        lines.append(f"⏱ Taxminan <b>{eta_minutes} daqiqada</b> yetkaziladi")
-        lines.append(f"⏱ Ориентировочно через <b>{eta_minutes} мин</b>")
-    if distance_km:
-        lines.append(f"📍 Masofa: ~{distance_km:g} km")
-    if courier_name or courier_phone:
-        lines.append("")
-        lines.append("🚴 <b>Kuryer:</b>")
-        if courier_name:
-            lines.append(f"👤 {courier_name}")
-        if courier_phone:
-            lines.append(f"📞 {courier_phone}")
+    """Kuryer 'yetkazilmoqda' — ETA + masofa + kuryer, mijoz tilida."""
+    l = _lang(lang)
+    if l == "ru":
+        lines = [f"🛵 <b>Ваш заказ в пути · № {order.number}</b>"]
+        if eta_minutes:
+            lines.append(f"⏱ Ориентировочно через <b>{eta_minutes} мин</b>")
+        if distance_km:
+            lines.append(f"📍 Расстояние: ~{distance_km:g} км")
+    else:
+        lines = [f"🛵 <b>Buyurtmangiz yo'lda · № {order.number}</b>"]
+        if eta_minutes:
+            lines.append(f"⏱ Taxminan <b>{eta_minutes} daqiqada</b> yetkaziladi")
+        if distance_km:
+            lines.append(f"📍 Masofa: ~{distance_km:g} km")
+    lines.extend(_courier_block(l, courier_name, courier_phone))
     _send(user_telegram_id, "\n".join(lines))
