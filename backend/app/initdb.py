@@ -64,8 +64,12 @@ _PUSH_COLUMNS = (
     "REFERENCES admin_users(id) ON DELETE CASCADE",
 )
 # Foydalanuvchini bloklash (admin paneldan) — buyurtma bera olmaydi.
+# password_hash / fcm_token — mijoz app (telefon login + push); create_all
+# mavjud jadvalga ustun qo'shmaydi, shuning uchun idempotent ALTER.
 _USER_COLUMNS = (
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN NOT NULL DEFAULT FALSE",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255)",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS fcm_token VARCHAR(255)",
 )
 # Xodim akkaunti: ism va telefon (do'kon yaratilganda tadbirkor kiritadi).
 _ADMIN_USER_COLUMNS = (
