@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { Order, RestaurantDetail } from "../api/types";
-import StatusBadge from "../components/StatusBadge";
-import { OrderDetailSkeleton } from "../components/Skeleton";
 import ErrorState from "../components/ErrorState";
+import OptimizedImage from "../components/OptimizedImage";
+import { OrderDetailSkeleton } from "../components/Skeleton";
+import StatusBadge from "../components/StatusBadge";
 import { loc, useI18n } from "../i18n";
 import { money, qtyUnit } from "../lib/format";
 
@@ -153,7 +154,7 @@ export default function OrderDetailPage() {
         {order.items.map((it) => (
           <div key={it.id} className="flex items-start gap-3 text-sm">
             {it.image_url ? (
-              <img src={it.image_url} alt="" className="h-12 w-12 rounded-xl object-cover bg-tg-card shrink-0" />
+              <OptimizedImage src={it.image_url} className="h-12 w-12 rounded-xl object-cover bg-tg-card shrink-0" />
             ) : (
               <div className="h-12 w-12 rounded-xl bg-tg-card flex items-center justify-center text-lg shrink-0">🍽</div>
             )}
@@ -330,7 +331,7 @@ export default function OrderDetailPage() {
                 {order.items.map((it) => (
                   <div key={it.id} className="flex items-start gap-2.5 text-sm">
                     {it.image_url ? (
-                      <img src={it.image_url} alt="" className="h-10 w-10 rounded-lg object-cover bg-slate-100 shrink-0" />
+                      <OptimizedImage src={it.image_url} className="h-10 w-10 rounded-lg object-cover bg-slate-100 shrink-0" />
                     ) : (
                       <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">🍽</div>
                     )}

@@ -9,4 +9,16 @@ export default defineConfig({
     hmr: { host: "localhost", port: 5173 },
   },
   preview: { host: true, port: 5173 },
+  build: {
+    target: "es2020",
+    cssMinify: true,
+    rollupOptions: {
+      output: {
+        // Framer-motion asosiy route'larda kam ishlatiladi — alohida chunk.
+        manualChunks: {
+          motion: ["framer-motion"],
+        },
+      },
+    },
+  },
 });

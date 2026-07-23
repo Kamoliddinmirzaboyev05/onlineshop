@@ -1,10 +1,10 @@
-import { AnimatePresence, motion } from "framer-motion";
 import { Minus, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Product } from "../api/types";
 import CartPill from "../components/CartPill";
 import ErrorState from "../components/ErrorState";
 import LocationNeeded from "../components/LocationNeeded";
+import OptimizedImage from "../components/OptimizedImage";
 import { useStore } from "../hooks/useStore";
 import { loc, useI18n } from "../i18n";
 import { money, unitLabel } from "../lib/format";
@@ -37,8 +37,8 @@ export default function SearchPage() {
     haptic("light");
   };
   const dec = (p: Product) => {
-    const q = cart.lines[p.id]?.quantity ?? 0;
-    cart.setQty(p.id, q - 1);
+    const qty = cart.lines[p.id]?.quantity ?? 0;
+    cart.setQty(p.id, qty - 1);
     haptic("light");
   };
   const qtyOf = (p: Product) => cart.lines[p.id]?.quantity ?? 0;
@@ -71,59 +71,43 @@ export default function SearchPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {results.map((p) => (
-              <motion.div
-                key={p.id}
-                layout
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="card flex flex-col"
-              >
+              <div key={p.id} className="card flex flex-col">
                 <div className="relative h-28 bg-tg-card flex items-center justify-center text-3xl">
                   {p.image_url ? (
-                    <img src={p.image_url} alt="" className="h-full w-full object-cover" />
+                    <OptimizedImage src={p.image_url} className="h-full w-full object-cover" />
                   ) : (
                     "🛒"
                   )}
                   <div className="absolute -bottom-5 left-1/2 -translate-x-1/2">
-                    <AnimatePresence mode="wait" initial={false}>
-                      {qtyOf(p) === 0 ? (
-                        <motion.button
-                          key="add"
-                          initial={{ scale: 0.6, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          exit={{ scale: 0.6, opacity: 0 }}
-                          whileTap={{ scale: 0.85 }}
+                    {qtyOf(p) === 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => add(p)}
+                        className="h-11 w-11 rounded-full bg-brand text-white flex items-center justify-center shadow-md shadow-brand/30 active:scale-90 transition"
+                      >
+                        <Plus size={24} />
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2 shrink-0 rounded-full bg-white shadow-md shadow-black/10 p-1 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => dec(p)}
+                          className="h-9 w-9 rounded-full text-slate-800 flex items-center justify-center active:scale-90 transition"
+                        >
+                          <Minus size={20} />
+                        </button>
+                        <span className="min-w-[3rem] text-center text-[15px] font-extrabold text-slate-900">
+                          {qtyOf(p)} {p.unit ? unitLabel(p.unit, lang) : ""}
+                        </span>
+                        <button
+                          type="button"
                           onClick={() => add(p)}
-                          className="h-11 w-11 rounded-full bg-brand text-white flex items-center justify-center shadow-md shadow-brand/30"
+                          className="h-9 w-9 rounded-full bg-brand text-white flex items-center justify-center active:scale-90 transition shadow-sm"
                         >
-                          <Plus size={24} />
-                        </motion.button>
-                      ) : (
-                        <motion.div
-                          key="step"
-                          initial={{ scale: 0.6, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          exit={{ scale: 0.6, opacity: 0 }}
-                          className="flex items-center gap-2 shrink-0 rounded-full bg-white shadow-md shadow-black/10 p-1 whitespace-nowrap"
-                        >
-                          <button
-                            onClick={() => dec(p)}
-                            className="h-9 w-9 rounded-full text-slate-800 flex items-center justify-center active:scale-90 transition"
-                          >
-                            <Minus size={20} />
-                          </button>
-                          <span className="min-w-[3rem] text-center text-[15px] font-extrabold text-slate-900">
-                            {qtyOf(p)} {p.unit ? unitLabel(p.unit, lang) : ""}
-                          </span>
-                          <button
-                            onClick={() => add(p)}
-                            className="h-9 w-9 rounded-full bg-brand text-white flex items-center justify-center active:scale-90 transition shadow-sm"
-                          >
-                            <Plus size={20} />
-                          </button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                          <Plus size={20} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="px-3 pt-6 pb-3">
@@ -135,7 +119,7 @@ export default function SearchPage() {
                   </h3>
                   {p.unit && <p className="text-xs text-tg-hint mt-0.5">1{unitLabel(p.unit, lang)}</p>}
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}

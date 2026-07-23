@@ -19,12 +19,14 @@ def platform_token(db_session) -> str:
 
 
 def _png() -> bytes:
-    """Eng kichik haqiqiy PNG (magic-byte tekshiruvidan o'tishi uchun)."""
-    return bytes.fromhex(
-        "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"
-        "0000000a49444154789c6360000002000100ffff03000006000557bfabd4000000"
-        "0049454e44ae426082"
-    )
+    """Haqiqiy PNG (Pillow + magic-byte)."""
+    from io import BytesIO
+
+    from PIL import Image
+
+    buf = BytesIO()
+    Image.new("RGB", (32, 32), (255, 80, 40)).save(buf, format="PNG")
+    return buf.getvalue()
 
 
 def _upload(client, token: str):
@@ -36,15 +38,21 @@ def _upload(client, token: str):
 
 
 def test_platform_admin_can_upload(client, platform_token):
-    assert _upload(client, platform_token).status_code == 200
+    resp = _upload(client, platform_token)
+    assert resp.status_code == 200
+    assert resp.json()["url"].endswith(".webp")
 
 
 def test_business_can_upload(client, tenant_a):
-    assert _upload(client, tenant_a.business_token).status_code == 200
+    resp = _upload(client, tenant_a.business_token)
+    assert resp.status_code == 200
+    assert resp.json()["url"].endswith(".webp")
 
 
 def test_staff_can_upload(client, tenant_a):
-    assert _upload(client, tenant_a.staff_token).status_code == 200
+    resp = _upload(client, tenant_a.staff_token)
+    assert resp.status_code == 200
+    assert resp.json()["url"].endswith(".webp")
 
 
 def test_anonymous_cannot_upload(client):

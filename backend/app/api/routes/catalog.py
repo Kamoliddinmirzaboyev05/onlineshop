@@ -21,7 +21,8 @@ router = APIRouter(prefix="/restaurants", tags=["catalog"])
 # o'zgartirgan mahsulot/kategoriya mijozga ~CACHE_TTL soniyagacha eski holda
 # ko'rinishi mumkin. Kengaytirish kerak bo'lsa: admin/business yozish
 # route'larida shu kalitlarga `redis_client.delete(...)` qo'shing.
-CACHE_TTL = 20
+# 2 daqiqa — katalog kam o'zgaradi; har nearest so'rovida DB/join yuki kamayadi.
+CACHE_TTL = 120
 
 
 @router.get("", response_model=list[RestaurantOut])

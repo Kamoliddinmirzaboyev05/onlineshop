@@ -69,10 +69,34 @@ app.include_router(api)
 # Yuklangan rasmlar — statik fayllar. Fayl nomi har yuklashda tasodifiy
 # (uploads.py: secrets.token_hex) va hech qachon qayta yozilmaydi — shuning
 # uchun uzoq/immutable kesh xavfsiz: brauzer/CDN qayta-qayta so'ramaydi.
+# 30 kun — TMA/mijoz qayta ochganda rasm tarmoqdan emas, disk keshidan.
+# Ba'zi eski .png nomli fayllar ichi WebP (reprocess) — content-type sniff.
+def _sniff_image_type(path: str) -> str | None:
+    try:
+        with open(path, "rb") as f:
+            head = f.read(12)
+    except OSError:
+        return None
+    if head[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if head[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if head[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
 class _CachedStaticFiles(StaticFiles):
     async def get_response(self, path, scope):
         response = await super().get_response(path, scope)
-        response.headers["Cache-Control"] = "public, max-age=604800, immutable"
+        if response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=2592000, immutable"
+            # Magic-byte — eski .png nomli WebP ham to'g'ri MIME oladi.
+            mime = _sniff_image_type(str(UPLOAD_DIR / path))
+            if mime:
+                response.headers["Content-Type"] = mime
         return response
 
 

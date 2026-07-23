@@ -1,5 +1,6 @@
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import OptimizedImage from "../components/OptimizedImage";
 import PageHeader from "../components/PageHeader";
 import { loc, useI18n } from "../i18n";
 import { money, unitLabel } from "../lib/format";
@@ -33,7 +34,7 @@ export default function CartPage() {
           <div key={product.id} className="flex items-start gap-3 py-4">
             <div className="h-16 w-16 shrink-0 rounded-2xl bg-tg-card flex items-center justify-center overflow-hidden text-2xl">
               {product.image_url ? (
-                <img src={product.image_url} alt="" className="h-full w-full object-cover" />
+                <OptimizedImage src={product.image_url} className="h-full w-full object-cover" />
               ) : (
                 "🛒"
               )}

@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type { Order } from "../api/types";
-import StatusBadge from "../components/StatusBadge";
-import { OrderListSkeleton } from "../components/Skeleton";
 import ErrorState from "../components/ErrorState";
+import OptimizedImage from "../components/OptimizedImage";
+import { OrderListSkeleton } from "../components/Skeleton";
+import StatusBadge from "../components/StatusBadge";
 import { useI18n } from "../i18n";
 import { money } from "../lib/format";
 
@@ -74,7 +75,7 @@ export default function OrdersPage() {
               <div className="flex items-center gap-1.5 mt-3">
                 {o.items.slice(0, 5).map((it) =>
                   it.image_url ? (
-                    <img key={it.id} src={it.image_url} alt="" className="h-10 w-10 rounded-lg object-cover bg-tg-card shrink-0" />
+                    <OptimizedImage key={it.id} src={it.image_url} className="h-10 w-10 rounded-lg object-cover bg-tg-card shrink-0" />
                   ) : (
                     <div key={it.id} className="h-10 w-10 rounded-lg bg-tg-card flex items-center justify-center text-sm shrink-0">🍽</div>
                   )

@@ -72,7 +72,9 @@ export function getCoords(): Promise<{ lat: number; lng: number } | null> {
             coordsCache = null;
             resolve(null);
           },
-          { enableHighAccuracy: true, timeout: 5000 }
+          // enableHighAccuracy sekin (GPS lock); coarse joylashuv do'kon
+          // tanlash uchun yetarli va 1–2 s tezroq.
+          { enableHighAccuracy: false, timeout: 4000, maximumAge: 60_000 }
         );
       });
     })

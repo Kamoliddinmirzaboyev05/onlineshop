@@ -1,12 +1,12 @@
-import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { Category } from "../api/types";
 import CartPill from "../components/CartPill";
-import { StoreListSkeleton } from "../components/Skeleton";
 import ErrorState from "../components/ErrorState";
 import LocationNeeded from "../components/LocationNeeded";
+import OptimizedImage from "../components/OptimizedImage";
 import PageHeader from "../components/PageHeader";
+import { StoreListSkeleton } from "../components/Skeleton";
 import { useStore } from "../hooks/useStore";
 import { loc, useI18n } from "../i18n";
 import { haptic } from "../telegram";
@@ -20,15 +20,6 @@ const PALETTES = [
   "bg-[#E6E0FB]",
   "bg-[#FDF0C4]",
 ];
-
-const container = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } },
-};
-const card = {
-  hidden: { opacity: 0, y: 24, scale: 0.98 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 260, damping: 24 } },
-};
 
 export default function HomePage() {
   const { t, lang } = useI18n();
@@ -76,10 +67,12 @@ export default function HomePage() {
           sections.map((section, si) => (
             <div key={section.key} className="mb-6 last:mb-0">
               {section.title && <h2 className="text-xl font-extrabold px-1 mb-4 text-slate-800">{section.title}</h2>}
-              <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-5 gap-3">
+              <div className="grid grid-cols-5 gap-3">
                 {section.cats.map((c, ci) => {
                   const isLastAndAlone = ci === section.cats.length - 1 && ci % 2 === 0;
-                  
+                  // Birinchi 4 rasm — viewport ichida, lazy emas (LCP).
+                  const aboveFold = si === 0 && ci < 4;
+
                   let spanClass = "col-span-5";
                   if (!isLastAndAlone) {
                     const isEvenRow = Math.floor(ci / 2) % 2 === 0;
@@ -92,29 +85,28 @@ export default function HomePage() {
                   }
 
                   return (
-                    <motion.button
+                    <button
                       key={c.id}
-                      variants={card}
-                      whileTap={{ scale: 0.97 }}
+                      type="button"
                       onClick={() => open(c)}
-                      className={`relative h-[160px] rounded-[24px] overflow-hidden text-left p-4 flex flex-col ${spanClass} ${PALETTES[si % PALETTES.length]}`}
+                      className={`relative h-[160px] rounded-[24px] overflow-hidden text-left p-4 flex flex-col active:scale-[0.97] transition-transform ${spanClass} ${PALETTES[si % PALETTES.length]}`}
                     >
-                      <h3 className={`font-bold text-slate-900 leading-tight z-10 ${isLastAndAlone ? 'text-[20px] w-1/2' : 'text-[16px] pr-2'}`}>
+                      <h3 className={`font-bold text-slate-900 leading-tight z-10 ${isLastAndAlone ? "text-[20px] w-1/2" : "text-[16px] pr-2"}`}>
                         {loc(c, "name", lang)}
                       </h3>
                       {c.image_url ? (
-                        <img
+                        <OptimizedImage
                           src={c.image_url}
-                          alt=""
+                          priority={aboveFold}
                           className="absolute inset-0 w-full h-full object-contain z-0"
                         />
                       ) : (
                         <ChevronRight size={18} className="absolute bottom-4 right-4 text-slate-500/50" />
                       )}
-                    </motion.button>
+                    </button>
                   );
                 })}
-              </motion.div>
+              </div>
             </div>
           ))
         )}

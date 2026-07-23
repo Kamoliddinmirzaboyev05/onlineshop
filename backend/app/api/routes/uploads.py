@@ -3,6 +3,8 @@
 Fayl `UPLOAD_DIR` ga saqlanadi, `/uploads/...` orqali statik beriladi.
 Qaytadi: {"url": "<api_base_url>/uploads/<name>"} — TMA va admin shu URL ni
 to'g'ridan-to'g'ri <img src> da ishlatadi.
+
+Yuklanganda avtomatik: max 1200px, WebP quality 80 (katta PNG/JPEG → kichik WebP).
 """
 
 import secrets
@@ -12,6 +14,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from app.api.deps import require_uploader
 from app.core.config import settings
+from app.services.images import process_upload
 
 UPLOAD_DIR = Path(__file__).resolve().parents[3] / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -60,11 +63,15 @@ async def upload_image(file: UploadFile = File(...)):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Fayl 8 MB dan katta")
 
     # Magic-byte tekshiruvi — kontent haqiqatan rasm ekanini tasdiqlaydi.
-    ext = _sniff(data)
-    if not ext:
+    if not _sniff(data):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Fayl haqiqiy rasm emas")
 
+    try:
+        optimized, ext = process_upload(data)
+    except Exception:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Rasm o'qib bo'lmadi") from None
+
     name = f"{secrets.token_hex(16)}{ext}"
-    (UPLOAD_DIR / name).write_bytes(data)
+    (UPLOAD_DIR / name).write_bytes(optimized)
 
     return {"url": f"{settings.api_base_url}/uploads/{name}"}

@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { getCoords } from "./api/client";
 import BottomNav from "./components/BottomNav";
 import Splash from "./components/Splash";
+import { prefetchStore } from "./hooks/useStore";
 import CartPage from "./pages/CartPage";
 import CategoryPage from "./pages/CategoryPage";
 import CheckoutPage from "./pages/CheckoutPage";
@@ -19,9 +20,9 @@ export default function App() {
 
   useEffect(() => {
     login();
-    // TMA ochilishi bilan darhol joylashuvni so'raymiz (Home kutmasdan) —
-    // natija keshlanadi, Home/Category/Search/Checkout shu keshni ishlatadi.
-    getCoords();
+    // TMA ochilishi bilan darhol joylashuv + katalog — Home skeleton qisqaroq.
+    // Natija keshlanadi, sahifalar qayta so'ramaydi.
+    void getCoords().then(() => prefetchStore());
   }, [login]);
 
   return (
